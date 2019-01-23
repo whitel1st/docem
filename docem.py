@@ -10,6 +10,7 @@ import string
 import random
 # To work with XXE payloads
 import json
+import time
 
 from lxml import etree, objectify
 
@@ -67,7 +68,7 @@ def document_prepare_initial_paths(path_to_file):
 		"modified_file_name" : original_file_name,
 		"path_to_modified_file" : ''
 	}
-
+	#print(paths_and_names)
 	return(paths_and_names)
 
 # Prepare path where document will be unzipped
@@ -86,6 +87,8 @@ def docuemnt_prepare_future_paths(paths, payload_type, payload_key, single_place
 		postfix = '%s+%s'%(payload_type, payload_key) 
 
 	#postfix = '%s+%s+%s+%s'%(payload_type, single_places, payload, str(offset)) 
+
+	postfix += postfix + '_' + str(time.time()).replace('.','') 
 
 	paths['modified_file_name'] = paths['original_file_name'] + '-' + postfix 
 	print('postfix',postfix)
@@ -369,11 +372,18 @@ _|    _|  _|    _|  _|        _|        _|    _|    _|
 _|_|_|      _|_|      _|_|_|    _|_|_|  _|    _|    _|  
                                                                                                         
 	'''
+	version = '0.8'
 	print(logo)
+	print('Current version: %s\n'%version)
+
+def interface_print_example():
+	ex1 = './docem.py -s samples/xxe/sample_oxml_xxe.docx -pm xxe'
+	print('Examples:\n%s\n'%ex1)
 
 if __name__ == '__main__':
 
-
+	interface_print_logo()
+	interface_print_example()
 
 	# Working with arguments
 	parser = argparse.ArgumentParser(description='Create test ODT files')
@@ -382,8 +392,8 @@ if __name__ == '__main__':
 	required = parser.add_argument_group('required arguments')
 	
 	required.add_argument('-s', dest='sample', type=str, help='path to sample file')
+	required.add_argument('-pm', dest='payload_mode',type=str,choices=['xss','xxe'],help='payload mode: embedding XXE or XSS in a file')
 	
-	optional.add_argument('-pm', dest='payload_mode',type=str,choices=['xss','xxe'])
 	optional.add_argument('-xf', dest='xxe_file', type=str, help='url to use in XXE payload. Default is: \'file:///etc/lsb-release\'', default='file:///etc/lsb-release')
 	optional.add_argument('-kt', dest='keep_tmp', action='store_true', help='do not delete unpacked and modified folders')
 	optional.add_argument('-xu', dest='xxe_url', type=str, help='url to use in XXE payload')
@@ -391,7 +401,6 @@ if __name__ == '__main__':
 	optional.add_argument('-pf', dest='payload_file',type=str, help='path to a file with payloads to embed',default='payloads/no_payload.txt')
 
 	parser._action_groups.append(optional)
-	
 	args = parser.parse_args()	
 
 	# Symbol that is used to determine a place where to place payload
@@ -399,7 +408,7 @@ if __name__ == '__main__':
 
 	path_to_complex_file = args.sample
 
-	interface_print_logo()
+	
 	if args.sample:
 
 		if os.path.exists(args.sample) and os.path.exists(args.payload_file):
@@ -414,9 +423,10 @@ if __name__ == '__main__':
 				os.mkdir(paths["path_to_tmp"])
 
 			print('\nCurrent setup')
+			print('payload mode:\t\t',args.payload_mode)
 			print('sample:\t\t\t',args.sample)
 			print('payload file:\t\t',args.payload_file)
-			print('payload mode:\t\t',args.payload_type)
+			print('payload type:\t\t',args.payload_type)
 			print('number of payloads:\t',len(payloads))
 			print('keep upacked files:\t',args.keep_tmp)
 
@@ -429,9 +439,10 @@ if __name__ == '__main__':
 			#make_tmp_clean_again(paths,'original')
 			interface_ask_user(embedding_info,paths)
 
+			# Starting maing cycle
 			for single_payload_key in payloads.keys():
 
-				print('\n%s'%single_payload_key, args.payload_type)
+				print('\n%s'% single_payload_key, args.payload_type)
 
 				if args.payload_type == 'per_document':
 					
@@ -453,7 +464,6 @@ if __name__ == '__main__':
 							#print(single_file_mod)
 							single_file.write(single_file_mod)
 							single_file.close()
-
 						
 					document_pack(paths)
 
@@ -464,7 +474,6 @@ if __name__ == '__main__':
 
 				elif args.payload_type == 'per_file':
 	
-
 					for single_file_key in tree_embedding:
 	
 						print('\t%s'%single_file_key)
@@ -489,10 +498,35 @@ if __name__ == '__main__':
 								#single_file_mod = tree_embedding[single_file_key]['content'].replace(magic_symbol, payloads[single_payload_key])
 								#xxe_current_refernce = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(5))
 
+								# Loading one payload to dict from string
 								xxe_current_payload_dict = json.loads(payloads[single_payload_key])
-								#xxe_current_payload = payloads[single_payload_key].replace('xxe',xxe_current_refernce)
-								print(xxe_current_payload_dict)
+
+
+								# If there is a reference
+								# then substitute all magic symblos with references 
+								if xxe_current_payload_dict['reference']:
+									single_file_mod = tree_embedding[single_file_key]['content'].replace(magic_symbol, xxe_current_payload_dict['reference'])
+
+								# If there is no reference
+								# then delete all magic symblos
+								else:
+									single_file_mod = tree_embedding[single_file_key]['content'].replace(magic_symbol,'')
+
+								# Ending with finding where to place 
+								# payload with <DOCTYPE and stuf>
+								offset_xml_start = int(tree_embedding[single_file_key]['content'].find('<?xml'))
+								# find where the tag closes
+								offset_xml_place_closed_bracket = tree_embedding[single_file_key]['content'].find('>',offset_xml_start) + 1 
+
+								single_file_mod = single_file_mod[:offset_xml_place_closed_bracket] + xxe_current_payload_dict['vector'] + single_file_mod[offset_xml_place_closed_bracket:]
+
+
+								print(single_file_mod)
+								print(offset_xml_start)
+								print(offset_xml_place_closed_bracket)
+								single_file.write(single_file_mod)
 								single_file.close()
+
 						#document_embed_payloads(payload_embed_file, args.payload_type)
 
 
