@@ -342,25 +342,32 @@ def interface_ask_user(embedding_info,paths):
 	# embedding_info['num_of_files_to_embed'] = len(tree_embedding)
 	# embedding_info['num_of_places_to_embed'] = len(tree_embedding)
 
-	print('\n\t%d\ttotal files to embed' % embedding_info['num_of_files_to_embed'])
-	print('\t%d\tplaces in a doc file to embed' % embedding_info['num_of_places_to_embed'])
+	print('\n\t%d\ttotal files to embed (used as modifier with -pt per_file)' % embedding_info['num_of_files_to_embed'])
+	print('\t%d\tplaces in a doc file to embed (used as modifier with -pt per_place)' % embedding_info['num_of_places_to_embed'])
 
-	num_of_files = embedding_info['num_of_payloads']
-
+	num_of_payloads = embedding_info['num_of_payloads']
+	# modifier depends on payload_type (-pt)
+	modifier = 1	
 
 	if embedding_info['payload_type'] == 'per_file':
-		num_of_files *= embedding_info['num_of_files_to_embed']
+		modifier = embedding_info['num_of_files_to_embed']
 
 	elif embedding_info['payload_type'] == 'per_place':
-		num_of_files *= embedding_info['num_of_places_to_embed']
+		modifier = embedding_info['num_of_places_to_embed']
 
-	print('\nFiles to be created %d' % num_of_files)
+	num_of_files_result = num_of_payloads * modifier
+
+	print('\nnum_of_payloads * modifier = %d * %d = %d'%(num_of_payloads,modifier,num_of_files_result))
+	print('modifier depends on payload_type (-pt)')
+	print('\nFiles to be created %d' % num_of_files_result)
+
 	#embedding_info
 	answer = input('Continue?(y/n): ')
 	
 	if answer == 'n':
 		make_tmp_clean_again(paths,'original')
 		exit()
+
 
 def interface_print_logo():
 	logo = '''
@@ -377,8 +384,14 @@ _|_|_|      _|_|      _|_|_|    _|_|_|  _|    _|    _|
 	print('Current version: %s\n'%version)
 
 def interface_print_example():
-	ex1 = './docem.py -s samples/xxe/sample_oxml_xxe.docx -pm xxe'
-	print('Examples:\n%s\n'%ex1)
+	examples = 	[
+		'./docem.py -s samples/xxe/sample_oxml_xxe.docx -pm xxe',
+		'./docem.py -s samples/xxe/sample_oxml_xxe_mod0.docx -pm xxe -pf payloads/xxe_special_2.txt -kt -pt per_file'
+	]
+
+	
+	
+	print('Examples:\n%s\n' % '\n'.join(e for e in examples))
 
 if __name__ == '__main__':
 
@@ -412,7 +425,7 @@ if __name__ == '__main__':
 	if args.sample:
 
 		if os.path.exists(args.sample) and os.path.exists(args.payload_file):
-			print('Document Embed XXS & XXE tool')
+			print('Document Embed XSS & XXE tool')
 			
 			payloads = payloads_read_file(args.payload_file)
 
@@ -453,54 +466,24 @@ if __name__ == '__main__':
 					# For 'per_document' we are looking only
 					# for those documents that have embedded magic symbols
 					# and we do not need to clear anything
+					# because all magic symbols will be substituted
 					for single_file_key in tree_embedding:
 
 						#print('\n',tree_embedding[single_file_key]['path_in_tmp'])
 
-						with open(tree_embedding[single_file_key]['tmp_mod_path'],'w') as single_file:
-
-							#print('\tembed',payloads[single_payload_key])
-							single_file_mod = tree_embedding[single_file_key]['content'].replace(magic_symbol, payloads[single_payload_key])
-							#print(single_file_mod)
-							single_file.write(single_file_mod)
-							single_file.close()
-						
-					document_pack(paths)
-
-					print('\tpacked to: %s' % paths['path_to_packetd_file'])
-
-					if not args.keep_tmp: 			
-						make_tmp_clean_again(paths,'copy')
-
-				elif args.payload_type == 'per_file':
-	
-					for single_file_key in tree_embedding:
-	
-						print('\t%s'%single_file_key)
-
-						docuemnt_prepare_future_paths(paths, args.payload_type, single_payload_key, single_file_key)
-						document_tree_embedding_append_mod_paths(paths, tree_embedding)						
-						document_copy_dir(paths)
-
-						#print('\n',tree_embedding[single_file_key]['path_in_tmp'])
-
-						if args.payload_mode == 'xxs':
-
+						if args.payload_mode == 'xss':			
 							with open(tree_embedding[single_file_key]['tmp_mod_path'],'w') as single_file:
 								#print('\tembed',payloads[single_payload_key])
 								single_file_mod = tree_embedding[single_file_key]['content'].replace(magic_symbol, payloads[single_payload_key])
+								#print(single_file_mod)
 								single_file.write(single_file_mod)
 								single_file.close()
 
 						elif args.payload_mode == 'xxe':
 							with open(tree_embedding[single_file_key]['tmp_mod_path'],'w') as single_file:
-
-								#single_file_mod = tree_embedding[single_file_key]['content'].replace(magic_symbol, payloads[single_payload_key])
-								#xxe_current_refernce = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(5))
-
+							
 								# Loading one payload to dict from string
 								xxe_current_payload_dict = json.loads(payloads[single_payload_key])
-
 
 								# If there is a reference
 								# then substitute all magic symblos with references 
@@ -520,10 +503,70 @@ if __name__ == '__main__':
 
 								single_file_mod = single_file_mod[:offset_xml_place_closed_bracket] + xxe_current_payload_dict['vector'] + single_file_mod[offset_xml_place_closed_bracket:]
 
+								#print(single_file_mod)
+								#print(offset_xml_start)
+								#print(offset_xml_place_closed_bracket)
+								single_file.write(single_file_mod)
+								single_file.close()
 
-								print(single_file_mod)
-								print(offset_xml_start)
-								print(offset_xml_place_closed_bracket)
+
+					document_pack(paths)
+
+					print('\tpacked to: %s' % paths['path_to_packetd_file'])
+
+					if not args.keep_tmp: 			
+						make_tmp_clean_again(paths,'copy')
+
+				elif args.payload_type == 'per_file':
+	
+					for single_file_key in tree_embedding:
+	
+						print('\t%s'%single_file_key)
+
+						docuemnt_prepare_future_paths(paths, args.payload_type, single_payload_key, single_file_key)
+						document_tree_embedding_append_mod_paths(paths, tree_embedding)						
+						document_copy_dir(paths)
+
+						#print('\n',tree_embedding[single_file_key]['path_in_tmp'])
+
+						if args.payload_mode == 'xss':
+
+							with open(tree_embedding[single_file_key]['tmp_mod_path'],'w') as single_file:
+								#print('\tembed',payloads[single_payload_key])
+								single_file_mod = tree_embedding[single_file_key]['content'].replace(magic_symbol, payloads[single_payload_key])
+								single_file.write(single_file_mod)
+								single_file.close()
+
+						elif args.payload_mode == 'xxe':
+							with open(tree_embedding[single_file_key]['tmp_mod_path'],'w') as single_file:
+
+								#single_file_mod = tree_embedding[single_file_key]['content'].replace(magic_symbol, payloads[single_payload_key])
+								#xxe_current_refernce = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(5))
+
+								# Loading one payload to dict from string
+								xxe_current_payload_dict = json.loads(payloads[single_payload_key])
+
+								# If there is a reference
+								# then substitute all magic symblos with references 
+								if xxe_current_payload_dict['reference']:
+									single_file_mod = tree_embedding[single_file_key]['content'].replace(magic_symbol, xxe_current_payload_dict['reference'])
+
+								# If there is no reference
+								# then delete all magic symblos
+								else:
+									single_file_mod = tree_embedding[single_file_key]['content'].replace(magic_symbol,'')
+
+								# Ending with finding where to place 
+								# payload with <DOCTYPE and stuf>
+								offset_xml_start = int(tree_embedding[single_file_key]['content'].find('<?xml'))
+								# find where the tag closes
+								offset_xml_place_closed_bracket = tree_embedding[single_file_key]['content'].find('>',offset_xml_start) + 1 
+
+								single_file_mod = single_file_mod[:offset_xml_place_closed_bracket] + xxe_current_payload_dict['vector'] + single_file_mod[offset_xml_place_closed_bracket:]
+
+								#print(single_file_mod)
+								#print(offset_xml_start)
+								#print(offset_xml_place_closed_bracket)
 								single_file.write(single_file_mod)
 								single_file.close()
 
