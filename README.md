@@ -26,7 +26,13 @@ To create such documents with embedded payloads there is a famous tool called [o
 But. It is not convinient to use `oxml_xxe` when you need to create hundreds of documents with payloads in different places.
 So there it goes - Docem.
 
-![diag1](https://github.com/whitel1st/docem/blob/master/pics/diag1.png "diag1")
+It works like that: You specify sample document - that is a doc that has some `magic_symbols` (in this case it is `፨`)  that will be replaced by your refernce to a payload in case of XXE payload, or will be replaces by your XSS payload.
+
+Also there are three different types of `payload_type` - every type determine how every `magic_symbol` will be processed for a given file in a document.
+Every `payload_type` described in section `Usage`.
+Here is a small scheme of how this works:
+
+![diag1](https://github.com/whitel1st/docem/blob/master/pics/diag1.png "diag1")t
 
 ![screenshot](https://github.com/whitel1st/docem/blob/master/pics/screenshot.png "screenshot")
 
