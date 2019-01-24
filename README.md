@@ -20,6 +20,8 @@ _|_|_|      _|_|      _|_|_|    _|_|_|  _|    _|    _|
 		- [x] Then we find all magic symbols 
 	- [ ] Stage 1. Combie two tools in one
 - [x] Read file with payloads
+- [ ] Add flag to specify custom url to use in XXE
+- [ ] Add flag to specify custom url to use in XSS
 - [ ] Add ability to embed not only in xml but in unzip file also
 
 # Tool

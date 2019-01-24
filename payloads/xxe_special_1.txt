@@ -1,0 +1,1 @@
+{"vector":"<!DOCTYPE docem [<!ENTITY xxe_canary \"XXE_STRING\">]>","reference":"&xxe_canary;"}

