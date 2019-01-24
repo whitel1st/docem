@@ -17,7 +17,7 @@ This tool is a side-project of a colloborative research of document's internal s
 
 A lot of common document formats, such as doc,docx,odt,etc is just a zip file with a few xml files inside 
 
-![diag0](https://github.com/whitel1st/docem/pics/diag0.png "diag0")
+![diag0](https://github.com/whitel1st/docem/blob/master/pics/diag0.png "diag0")
 
 So why not embed XXE payloads in them?  
 That was done by a great [research](http://oxmlxxe.github.io/reveal.js/slides.html#/) by Will Vandevanter (`_will_is`)
@@ -26,9 +26,9 @@ To create such documents with embedded payloads there is a famous tool called [o
 But. It is not convinient to use `oxml_xxe` when you need to create hundreds of documents with payloads in different places.
 So there it goes - Docem.
 
-![diag1](https://github.com/whitel1st/docem/pics/diag1.png "diag1")
+![diag1](https://github.com/whitel1st/docem/blob/master/pics/diag1.png "diag1")
 
-![screenshot](https://github.com/whitel1st/docem/pics/screenshot.png "screenshot")
+![screenshot](https://github.com/whitel1st/docem/blob/master/pics/screenshot.png "screenshot")
 
 
 ## Install 
