@@ -10,7 +10,25 @@ _|_|_|      _|_|      _|_|_|    _|_|_|  _|    _|    _|
 
 Uility to embed XXE and XSS payloads in docx,odt,pptx,etc - any documents that is a zip archive with bunch of xml files inside
 
-This tool is a side-project of a colloborative research with [ShikariSenpai](https://twitter.com/ShikariSenpai) and [ansjdnakjdnajkd](https://twitter.com/ansjdnakjdnajkd) of documents internal structure 
+This tool is a side-project of a colloborative research of document's internal structure with [ShikariSenpai](https://twitter.com/ShikariSenpai) and [ansjdnakjdnajkd](https://twitter.com/ansjdnakjdnajkd) 
+
+
+## What it is all about
+
+A lot of common document formats, such as doc,docx,odt,etc is just a zip file with a few xml files inside 
+
+![diag0](https://github.com/whitel1st/docem/pics/diag0.png "diag0")
+
+So why not embed XXE payloads in them?  
+That was done by a great [research](http://oxmlxxe.github.io/reveal.js/slides.html#/) by Will Vandevanter (`_will_is`)
+To create such documents with embedded payloads there is a famous tool called [oxml_xxe](https://github.com/BuffaloWill/oxml_xxe). 
+
+But. It is not convinient to use `oxml_xxe` when you need to create hundreds of documents with payloads in different places.
+So there it goes - Docem.
+
+![diag1](https://github.com/whitel1st/docem/pics/diag1.png "diag1")
+
+![screenshot](https://github.com/whitel1st/docem/pics/screenshot.png "screenshot")
 
 
 ## Install 
