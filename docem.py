@@ -163,28 +163,33 @@ def document_tree_embedding_append_mod_paths(paths, tree_embedding):
 		tree_embedding[file_to_embed]['tmp_mod_path'] = paths['path_to_unzipped_folder_modified'] + tree_embedding[file_to_embed]['path_in_tmp']
 		#print(tree_embedding[file_to_embed]['tmp_mod_path'])
 
+
+# Meta function 
+# for all possbile embeddings
 def document_embed_payloads(payload_mode,payload_type,single_file_dict, payload_single, magic_symbol,offset_in_single_file = 0):
 
 
 	# payload_mode
 	# payload_type
-	# tree_embedding[single_file_key]['tmp_mod_path']
-	# tree_embedding[single_file_key]['content']
+	# tree_embedding[single_file_key] = single_file_dict 
+	# 	tree_embedding[single_file_key]['tmp_mod_path']
+	# 	tree_embedding[single_file_key]['content']
 	# magic_symbol
-	# payloads[single_payload_key]
+	# payloads[single_payload_key] = payload_single
+	# offset_in_single_file = offset_in_single_file
 
 
-	if args.payload_mode == 'xss':
-		with open(tree_embedding[single_file_key]['tmp_mod_path'],'w') as single_file:
+	if payload_mode == 'xss':
+		with open(single_file_dict['tmp_mod_path'],'w') as single_file:
 
 			if payload_type == 'per_document' or payload_mode == 'per_file':
 
-				single_file_mod = tree_embedding[single_file_key]['content'].replace(magic_symbol, payloads[single_payload_key])
+				single_file_mod = single_file_dict['content'].replace(magic_symbol, payload_single)
 
 			elif payload_mode == 'per_place':
 
-				single_file_mod = tree_embedding[single_file_key]['content'][:offset_in_single_file] 
-				single_file_mod += payloads[single_payload_key] + tree_embedding[single_file_key]['content'][offset_in_single_file+1:] 
+				single_file_mod = single_file_dict['content'][:offset_in_single_file] 
+				single_file_mod += payload_single + single_file_dict['content'][offset_in_single_file+1:] 
 				
 				# Clear other places in a file
 				single_file_mod = single_file_mod.replace(magic_symbol,'')
@@ -193,40 +198,40 @@ def document_embed_payloads(payload_mode,payload_type,single_file_dict, payload_
 			single_file.close()
 
 
-	elif args.payload_mode == 'xxe':
-		with open(tree_embedding[single_file_key]['tmp_mod_path'],'w') as single_file:
+	elif payload_mode == 'xxe':
+		with open(single_file_dict['tmp_mod_path'],'w') as single_file:
 
 			# Loading one payload to dict from string
-			xxe_current_payload_dict = json.loads(payloads[single_payload_key])
+			xxe_current_payload_dict = json.loads(payload_single)
 
 			# If there is a reference
 			# then substitute all magic symblos with references 
 			if xxe_current_payload_dict['reference']:
 
-				if payload_mode == 'per_document' or payload_mode == 'per_file':
+				if payload_type == 'per_document' or payload_type == 'per_file':
 
-					single_file_mod = tree_embedding[single_file_key]['content'].replace(magic_symbol, xxe_current_payload_dict['reference'])
+					single_file_mod = single_file_dict['content'].replace(magic_symbol, xxe_current_payload_dict['reference'])
 
-				elif payload_mode == 'per_place': 
+				elif payload_type == 'per_place': 
 
-					single_file_mod = tree_embedding[single_file_key]['content'][:offset_in_single_file] 
-					single_file_mod += xxe_current_payload_dict['reference'] + tree_embedding[single_file_key]['content'][offset_in_single_file+1:] 
+					single_file_mod = single_file_dict['content'][:offset_in_single_file] 
+					single_file_mod += xxe_current_payload_dict['reference'] + single_file_dict['content'][offset_in_single_file+1:] 
 
 					# Clear other places in a file
 					single_file_mod = single_file_mod.replace(magic_symbol,'')	
 
 
-
 			# If there is no reference
 			# then delete all magic symblos
 			else:
-				single_file_mod = tree_embedding[single_file_key]['content'].replace(magic_symbol,'')
+				single_file_mod = single_file_dict['content'].replace(magic_symbol,'')
+
 
 			# Ending with finding where to place 
 			# payload with <DOCTYPE and stuf>
-			offset_xml_start = int(tree_embedding[single_file_key]['content'].find('<?xml'))
+			offset_xml_start = int(single_file_dict['content'].find('<?xml'))
 			# find where the tag closes
-			offset_xml_place_closed_bracket = tree_embedding[single_file_key]['content'].find('>',offset_xml_start) + 1 
+			offset_xml_place_closed_bracket = single_file_dict['content'].find('>',offset_xml_start) + 1 
 
 			single_file_mod = single_file_mod[:offset_xml_place_closed_bracket] + xxe_current_payload_dict['vector'] + single_file_mod[offset_xml_place_closed_bracket:]
 
@@ -241,9 +246,12 @@ def document_pack(paths):
 	# Split - because shutil will add .zip anyway
 	#print(paths['path_to_unzipped_folder_modified'])
 	shutil.make_archive(base_name=paths['path_to_modified_file'].split('.')[0],root_dir=paths['path_to_unzipped_folder_modified'],format='zip')
+
+	# For debug
+	#print('\n%s'%paths['path_to_modified_file'])
+	#print(paths['path_to_packetd_file'])
+
 	# copy & rename zip to odt
-	print('\n%s'%paths['path_to_modified_file'])
-	print(paths['path_to_packetd_file'])
 	shutil.copy(paths['path_to_modified_file'], paths['path_to_packetd_file'])
 
 	
@@ -467,47 +475,23 @@ if __name__ == '__main__':
 					document_tree_embedding_append_mod_paths(paths, tree_embedding)
 					document_copy_dir(paths)
 
+					
+					#document_embed_payloads(payload_mode,payload_type,single_file_dict, payload_single, magic_symbol,offset_in_single_file = 0):
+
+
 					# For 'per_document' we are looking only
 					# for those documents that have embedded magic symbols
 					# and we do not need to clear anything
 					# because all magic symbols will be substituted
 					for single_file_key in tree_embedding:
 
-						#print('\n',tree_embedding[single_file_key]['path_in_tmp'])
-
-						if args.payload_mode == 'xss':
-							with open(tree_embedding[single_file_key]['tmp_mod_path'],'w') as single_file:
-
-								single_file_mod = tree_embedding[single_file_key]['content'].replace(magic_symbol, payloads[single_payload_key])
-								single_file.write(single_file_mod)
-								single_file.close()
-
-						elif args.payload_mode == 'xxe':
-							with open(tree_embedding[single_file_key]['tmp_mod_path'],'w') as single_file:
-							
-								# Loading one payload to dict from string
-								xxe_current_payload_dict = json.loads(payloads[single_payload_key])
-
-								# If there is a reference
-								# then substitute all magic symblos with references 
-								if xxe_current_payload_dict['reference']:
-									single_file_mod = tree_embedding[single_file_key]['content'].replace(magic_symbol, xxe_current_payload_dict['reference'])
-
-								# If there is no reference
-								# then delete all magic symblos
-								else:
-									single_file_mod = tree_embedding[single_file_key]['content'].replace(magic_symbol,'')
-
-								# Ending with finding where to place 
-								# payload with <DOCTYPE and stuf>
-								offset_xml_start = int(tree_embedding[single_file_key]['content'].find('<?xml'))
-								# find where the tag closes
-								offset_xml_place_closed_bracket = tree_embedding[single_file_key]['content'].find('>',offset_xml_start) + 1 
-
-								single_file_mod = single_file_mod[:offset_xml_place_closed_bracket] + xxe_current_payload_dict['vector'] + single_file_mod[offset_xml_place_closed_bracket:]
-
-								single_file.write(single_file_mod)
-								single_file.close()
+						document_embed_payloads(
+							payload_mode = args.payload_mode,
+							payload_type = args.payload_type,
+							single_file_dict = tree_embedding[single_file_key],
+							payload_single = payloads[single_payload_key],
+							magic_symbol = magic_symbol
+							)
 
 
 					document_pack(paths)
