@@ -163,23 +163,35 @@ def document_tree_embedding_append_mod_paths(paths, tree_embedding):
 		tree_embedding[file_to_embed]['tmp_mod_path'] = paths['path_to_unzipped_folder_modified'] + tree_embedding[file_to_embed]['path_in_tmp']
 		#print(tree_embedding[file_to_embed]['tmp_mod_path'])
 
-def document_embed_payloads(payload_mode,single_file_dict, payload_single, magic_symbol):
+def document_embed_payloads(payload_mode,payload_type,single_file_dict, payload_single, magic_symbol,offset_in_single_file = 0):
 
 
-
-	payload_mode
-	tree_embedding[single_file_key]['tmp_mod_path']
-	tree_embedding[single_file_key]['content']
-	magic_symbol
-	payloads[single_payload_key]
+	# payload_mode
+	# payload_type
+	# tree_embedding[single_file_key]['tmp_mod_path']
+	# tree_embedding[single_file_key]['content']
+	# magic_symbol
+	# payloads[single_payload_key]
 
 
 	if args.payload_mode == 'xss':
 		with open(tree_embedding[single_file_key]['tmp_mod_path'],'w') as single_file:
 
-			single_file_mod = tree_embedding[single_file_key]['content'].replace(magic_symbol, payloads[single_payload_key])
+			if payload_type == 'per_document' or payload_mode == 'per_file':
+
+				single_file_mod = tree_embedding[single_file_key]['content'].replace(magic_symbol, payloads[single_payload_key])
+
+			elif payload_mode == 'per_place':
+
+				single_file_mod = tree_embedding[single_file_key]['content'][:offset_in_single_file] 
+				single_file_mod += payloads[single_payload_key] + tree_embedding[single_file_key]['content'][offset_in_single_file+1:] 
+				
+				# Clear other places in a file
+				single_file_mod = single_file_mod.replace(magic_symbol,'')
+
 			single_file.write(single_file_mod)
 			single_file.close()
+
 
 	elif args.payload_mode == 'xxe':
 		with open(tree_embedding[single_file_key]['tmp_mod_path'],'w') as single_file:
@@ -190,7 +202,20 @@ def document_embed_payloads(payload_mode,single_file_dict, payload_single, magic
 			# If there is a reference
 			# then substitute all magic symblos with references 
 			if xxe_current_payload_dict['reference']:
-				single_file_mod = tree_embedding[single_file_key]['content'].replace(magic_symbol, xxe_current_payload_dict['reference'])
+
+				if payload_mode == 'per_document' or payload_mode == 'per_file':
+
+					single_file_mod = tree_embedding[single_file_key]['content'].replace(magic_symbol, xxe_current_payload_dict['reference'])
+
+				elif payload_mode == 'per_place': 
+
+					single_file_mod = tree_embedding[single_file_key]['content'][:offset_in_single_file] 
+					single_file_mod += xxe_current_payload_dict['reference'] + tree_embedding[single_file_key]['content'][offset_in_single_file+1:] 
+
+					# Clear other places in a file
+					single_file_mod = single_file_mod.replace(magic_symbol,'')	
+
+
 
 			# If there is no reference
 			# then delete all magic symblos
