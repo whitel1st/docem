@@ -357,14 +357,15 @@ _|    _|  _|    _|  _|        _|        _|    _|    _|
 _|_|_|      _|_|      _|_|_|    _|_|_|  _|    _|    _|  
                                                                                                         
 	'''
-	version = '0.8'
+	version = '0.9'
 	print(logo)
 	print('Current version: %s\n'%version)
 
 def interface_print_example():
 	examples = 	[
 		'./docem.py -s samples/xxe/sample_oxml_xxe.docx -pm xxe',
-		'./docem.py -s samples/xxe/sample_oxml_xxe_mod0.docx -pm xxe -pf payloads/xxe_special_2.txt -kt -pt per_file'
+		'./docem.py -s samples/xxe/sample_oxml_xxe_mod0.docx -pm xxe -pf payloads/xxe_special_2.txt -kt -pt per_file',
+		'./docem.py -s samples/xxe/sample_oxml_xxe_mod1.docx -pm xxe -pf payloads/xxe_special_2.txt -kt -pt per_place'
 	]
 
 	
