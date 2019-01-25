@@ -34,6 +34,12 @@ Here is a small scheme of how this works:
 
 ![diag1](https://github.com/whitel1st/docem/blob/master/pics/diag1.png "diag1")
 
+Payload modes
+
+![diag2](https://github.com/whitel1st/docem/blob/master/pics/diag1.png "diag1")
+
+Programm interface
+
 ![screenshot](https://github.com/whitel1st/docem/blob/master/pics/screenshot.png "screenshot")
 
 
