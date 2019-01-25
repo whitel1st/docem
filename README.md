@@ -36,7 +36,7 @@ Here is a small scheme of how this works:
 
 Payload modes
 
-![diag2](https://github.com/whitel1st/docem/blob/master/pics/diag1.png "diag1")
+![diag2](https://github.com/whitel1st/docem/blob/master/pics/diag2.png "diag1")
 
 Programm interface
 
@@ -118,7 +118,7 @@ Just a file with strings. As if you would use it in any other tool.
 		- [x] XXE custom payload file
 		- [x] XSS payload file
 - ToDo
+	- [x] Add ability to embed not only in xml but in unzip file also
 	- [ ] Add flag to specify custom url to use in XXE
 	- [ ] Add flag to specify custom url to use in XSS
-	- [ ] Add ability to embed not only in xml but in unzip file also
 
