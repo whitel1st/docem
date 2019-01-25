@@ -32,7 +32,7 @@ Also there are three different types of `payload_type` - every type determine ho
 Every `payload_type` described in section `Usage`.
 Here is a small scheme of how this works:
 
-![diag1](https://github.com/whitel1st/docem/blob/master/pics/diag1.png "diag1")t
+![diag1](https://github.com/whitel1st/docem/blob/master/pics/diag1.png "diag1")
 
 ![screenshot](https://github.com/whitel1st/docem/blob/master/pics/screenshot.png "screenshot")
 
@@ -45,32 +45,43 @@ pip3 install -r requirements.txt
 
 ## Usage Docem
 
-General 
-
 ```
 python3 docem.py --help
 ```
 
 - required args
-	- `-s` - path to a sample file
+	- `-s` - path to a `sample file` or a `sample directory`
 	- `-pm` - payload mode
 		- `xss` - XSS - Cross Site Scripting 
 		- `xxe` - XXE - External XML Entity 
 - optional
-	- `-pm` - payload type
+	- `-pt` - payload type
 		- `per_document` - (default mode) for every payload, embed payload in all places in all files and create new doc
 		- `per_file` - for every payload, for every file inside a docuement, for all places inside file embed payload and create new doc
 		- `per_place` - for every payload, for every place in every file, embed payload and create new doc
-	- `-pf` - payload file. Path to a file with payloads
+	- `-pf` - payoload file
 	- `-kt` - do not delete temp folders in tmp 
+	- `-sx ` - sample extension - used when sample is a directory
 	- `-h` - print help
 
-Example 
+Examples 
 ```bash
-./docem.py -s samples/xss_sample_0.odt -pm xss -pf payloads/xss_tiny.txt -pm per_place
+./docem.py -s samples/xxe/sample_oxml_xxe_mod0/ -pm xss -pf payloads/xss_all.txt -pt per_document -kt -sx docx
 ./docem.py -s samples/xxe/sample_oxml_xxe_mod1.docx -pm xxe -pf payloads/xxe_special_2.txt -kt -pt per_place
+./docem.py -s samples/xss_sample_0.odt -pm xss -pf payloads/xss_tiny.txt -pm per_place
+./docem.py -s samples/xxe/sample_oxml_xxe_mod0/ -pm xss -pf payloads/xss_all.txt -pt per_file -kt -sx docx
 ```
 
+
+## How to create custom sample
+
+### Via new file
+
+1. Extract your document `example.docx`
+2. Add magic symbols - `፨` (yes, literally - those fancy 5 dots) in places where you want payloads to be embed
+3. Zip your new sample into `example_modified0.zip`
+4. Rename extension - `example_modified0.docx`
+5. Use new sample with tool
 
 ## File with payloads format
 
@@ -94,10 +105,14 @@ String from a file
 No special format.
 Just a file with strings. As if you would use it in any other tool.
 
-## ToDo
+## Features and ToDo
 
-- [x] Read file with payloads
-- [ ] Add flag to specify custom url to use in XXE
-- [ ] Add flag to specify custom url to use in XSS
-- [ ] Add ability to embed not only in xml but in unzip file also
+- Features
+	- [x] Read file with payloads
+		- [x] XXE custom payload file
+		- [x] XSS payload file
+- ToDo
+	- [ ] Add flag to specify custom url to use in XXE
+	- [ ] Add flag to specify custom url to use in XSS
+	- [ ] Add ability to embed not only in xml but in unzip file also
 

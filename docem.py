@@ -44,16 +44,42 @@ def document_prepare_initial_paths(path_to_file):
 	# but it might break something
 	if path_to_tmp.find('tmp') == 1: path_to_tmp = 'tmp/'
 
-	# Create separate variables for an original file
-	original_file_name = path_to_file.split('/')[-1].split('.')[0]
-	original_file_ext = path_to_file.split('/')[-1].split('.')[1]
+	# Determine whether supplied path is a path to dir
+	sample_type_is_folder = os.path.isdir(path_to_file)
 
-	# create variables for a copied files
-	path_to_copied_file = path_to_tmp + original_file_name + '.zip'
+	if sample_type_is_folder:
+
+		# Check that sample_type is set
+		# (Very dumb place for a check)
+		if not args.sample_extension and sample_type_is_folder:
+			print('\nError: You have to specify sample_type (example: -sx docx) when using sample from directory')
+			exit()
+
+		# If path was set as 'samples/xxe/sample_oxml_xxe_mod1/'
+		if len(path_to_file) - 1 == path_to_file.rfind('/'):
+			path_to_file = path_to_file[:-1]
+		# If path was set as 'samples/xxe/sample_oxml_xxe_mod1' 
+		# do nothing
+		# samples/xxe/sample_oxml_xxe_mod1 - is our format
+
+		original_file_name = path_to_file.split('/')[-1]
+		original_file_ext = args.sample_extension
+
+		path_to_copied_file = ''
+
+	else:
+
+		# Create separate variables for an original file
+		original_file_name = path_to_file.split('/')[-1].split('.')[0]
+		original_file_ext = path_to_file.split('/')[-1].split('.')[1]
+
+		# create variables for a copied files
+		path_to_copied_file = path_to_tmp + original_file_name + '.zip'
 
 	# create variables for an unzipped files
 	unzipped_file_name = original_file_name + '_' + original_file_ext
 	path_to_unzipped_folder_original = path_to_tmp + unzipped_file_name + '/'
+
 
 	paths_and_names = {
 		"path_to_script" : path_to_script,
@@ -66,7 +92,8 @@ def document_prepare_initial_paths(path_to_file):
 		"original_file_ext" : original_file_ext,
 		"unzipped_file_name" : unzipped_file_name,
 		"modified_file_name" : original_file_name,
-		"path_to_modified_file" : ''
+		"path_to_modified_file" : '',
+		"sample_type_is_folder" : sample_type_is_folder
 	}
 	#print(paths_and_names)
 	return(paths_and_names)
@@ -103,18 +130,20 @@ def docuemnt_prepare_future_paths(paths, payload_type, payload_key, single_place
 
 
 # copy, rename and unzip
-def document_unpack(paths, doctype='doc'):
+def document_unpack(paths):
 
-	if doctype == 'doc':
+	# If sample is a folder
+	if paths['sample_type_is_folder']:
+		shutil.copytree(paths["path_to_orignal_file"],paths["path_to_unzipped_folder_original"])
+
+	# If sample is a .docx or smth
+	else:
 		# copy original file into script_script/dir and rename extension to .zip
 		shutil.copy(paths["path_to_orignal_file"],paths["path_to_copied_file"])
 		# unzip renamed file into direc
 		shutil.unpack_archive(paths["path_to_copied_file"],paths["path_to_unzipped_folder_original"])
 		# debug
 		#print(paths["path_to_unzipped_folder_original"])
-
-	elif doctype == 'folder':
-		shutil.copy(paths["path_to_orignal_file"],paths["path_to_copied_file"])
 		
 
 def document_tree_generate(paths, opt=1):
@@ -180,16 +209,18 @@ def document_embed_payloads(payload_mode,payload_type,single_file_dict, payload_
 
 	if payload_mode == 'xss':
 		with open(single_file_dict['tmp_mod_path'],'w') as single_file:
-
-			if payload_type == 'per_document' or payload_mode == 'per_file':
+	
+			if payload_type == 'per_document' or payload_type == 'per_file':
 
 				single_file_mod = single_file_dict['content'].replace(magic_symbol, payload_single)
 
-			elif payload_mode == 'per_place':
+			elif payload_type == 'per_place':
 
 				single_file_mod = single_file_dict['content'][:offset_in_single_file] 
+
 				single_file_mod += payload_single + single_file_dict['content'][offset_in_single_file+1:] 
 				
+
 				# Clear other places in a file
 				single_file_mod = single_file_mod.replace(magic_symbol,'')
 
@@ -390,18 +421,17 @@ _|    _|  _|    _|  _|        _|        _|    _|    _|
 _|_|_|      _|_|      _|_|_|    _|_|_|  _|    _|    _|  
                                                                                                         
 	'''
-	version = '1.0'
+	version = '1.1'
 	print(logo)
 	print('Current version: %s\n'%version)
 
 def interface_print_example():
 	examples = 	[
-		'./docem.py -s samples/xxe/sample_oxml_xxe.docx -pm xxe',
-		'./docem.py -s samples/xxe/sample_oxml_xxe_mod0.docx -pm xxe -pf payloads/xxe_special_2.txt -kt -pt per_file',
-		'./docem.py -s samples/xxe/sample_oxml_xxe_mod1.docx -pm xxe -pf payloads/xxe_special_2.txt -kt -pt per_place'
+		'./docem.py -s samples/xxe/sample_oxml_xxe_mod0/ -pm xss -pf payloads/xss_all.txt -pt per_document -kt -sx docx',
+		'./docem.py -s samples/xxe/sample_oxml_xxe_mod1.docx -pm xxe -pf payloads/xxe_special_2.txt -kt -pt per_place',
+		'./docem.py -s samples/xss_sample_0.odt -pm xss -pf payloads/xss_tiny.txt -pm per_place',
+		'./docem.py -s samples/xxe/sample_oxml_xxe_mod0/ -pm xss -pf payloads/xss_all.txt -pt per_file -kt -sx docx'
 	]
-
-	
 	
 	print('Examples:\n%s\n' % '\n'.join(e for e in examples))
 
@@ -418,11 +448,12 @@ if __name__ == '__main__':
 	
 	required.add_argument('-s', dest='sample', type=str, help='path to sample file')
 	required.add_argument('-pm', dest='payload_mode',type=str,choices=['xss','xxe'],help='payload mode: embedding XXE or XSS in a file')
-	
-	optional.add_argument('-xf', dest='xxe_file', type=str, help='url to use in XXE payload. Default is: \'file:///etc/lsb-release\'', default='file:///etc/lsb-release')
+
+	#optional.add_argument('-xu', dest='xxe_uri', type=str, help='URI to use in XXE payload - file as \'file:///etc/lsb-release\' or url as \'http://example.com\'')
 	optional.add_argument('-kt', dest='keep_tmp', action='store_true', help='do not delete unpacked and modified folders')
-	optional.add_argument('-xu', dest='xxe_url', type=str, help='url to use in XXE payload')
 	optional.add_argument('-pt', dest='payload_type', type=str, help='how many payloads will be in one file. per_document is default',choices=['per_place','per_file','per_document'],default='per_document')
+	#optional.add_argument('-st', dest='sample_type', type=str, help='d ',choices=['doc','folder'],default='doc')
+	optional.add_argument('-sx', dest='sample_extension', type=str, help='d ')
 	optional.add_argument('-pf', dest='payload_file',type=str, help='path to a file with payloads to embed',default='payloads/no_payload.txt')
 
 	parser._action_groups.append(optional)
@@ -432,24 +463,29 @@ if __name__ == '__main__':
 	magic_symbol = '፨'
 
 	path_to_complex_file = args.sample
-
 	
 	if args.sample:
 
 		if os.path.exists(args.sample) and os.path.exists(args.payload_file):
 			print('Document Embed XSS & XXE tool')
 			
+
 			payloads = payloads_read_file(args.payload_file)
 
+			# Create dict with a lot of file paths that will be used 
+			# in future
 			paths = document_prepare_initial_paths(path_to_complex_file)
 			
+			print('\npaths in the beginning\n',paths)
+
 			# Create tmp directory if it is not exists
 			if not os.path.exists(paths["path_to_tmp"]):
 				os.mkdir(paths["path_to_tmp"])
 
 			print('\nCurrent setup')
+			print('sample file:\t\t',args.sample)
+			print('sample is it dir:\t',paths['sample_type_is_folder'])
 			print('payload mode:\t\t',args.payload_mode)
-			print('sample:\t\t\t',args.sample)
 			print('payload file:\t\t',args.payload_file)
 			print('payload type:\t\t',args.payload_type)
 			print('number of payloads:\t',len(payloads))
