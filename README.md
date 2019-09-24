@@ -1,4 +1,4 @@
-
+сф
 ```
 _|_|_|                                                  
 _|    _|    _|_|      _|_|_|    _|_|    _|_|_|  _|_|    
@@ -6,7 +6,7 @@ _|    _|  _|    _|  _|        _|_|_|_|  _|    _|    _|
 _|    _|  _|    _|  _|        _|        _|    _|    _|  
 _|_|_|      _|_|      _|_|_|    _|_|_|  _|    _|    _|
 
-version 1.1
+version 1.3
 ```
 
 
@@ -28,7 +28,7 @@ To create such documents with embedded payloads there is a famous tool called [o
 But. It is not convinient to use `oxml_xxe` when you need to create hundreds of documents with payloads in different places.
 So there it goes - Docem.
 
-It works like that: You specify sample document - that is a doc that has some `magic_symbols` (in this case it is `፨`)  that will be replaced by your refernce to a payload in case of XXE payload, or will be replaces by your XSS payload.
+It works like that: You specify sample document - that is a doc that has some `magic_symbols` (in illustratuin it is `፨` (in program it is constant `XXCb8bBA9XX`))  that will be replaced by your refernce to a payload in case of XXE payload, or will be replaces by your XSS payload.
 
 Also there are three different types of `payload_type` - every type determine how every `magic_symbol` will be processed for a given file in a document.
 Every `payload_type` described in section `Usage`.

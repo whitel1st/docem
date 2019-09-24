@@ -311,7 +311,7 @@ def document_copy_dir(paths):
 # }
 def document_tree_embedding_points(paths, tree, magic_symbol):
 
-	print('\nCount magic symbols')
+	print('\n======== Count magic symbols ========')
 
 	count_places = 0
 	
@@ -423,7 +423,7 @@ _|    _|  _|    _|  _|        _|        _|    _|    _|
 _|_|_|      _|_|      _|_|_|    _|_|_|  _|    _|    _|  
                                                                                                         
 	'''
-	version = '1.1'
+	version = '1.3'
 	print(logo)
 	print('Current version: %s\n'%version)
 
@@ -479,13 +479,14 @@ if __name__ == '__main__':
 			# in future
 			paths = document_prepare_initial_paths(path_to_complex_file)
 			
-			print('\npaths in the beginning\n',paths)
+			# For dubug
+			#print('\npaths in the beginning\n',paths)
 
 			# Create tmp directory if it is not exists
 			if not os.path.exists(paths["path_to_tmp"]):
 				os.mkdir(paths["path_to_tmp"])
 
-			print('\nCurrent setup')
+			print('\n=========== Current setup ===========')
 			print('sample file:\t\t',args.sample)
 			print('sample is it dir:\t',paths['sample_type_is_folder'])
 			print('payload mode:\t\t',args.payload_mode)
