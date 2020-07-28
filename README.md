@@ -1,4 +1,4 @@
-сф
+
 ```
 _|_|_|                                                  
 _|    _|    _|_|      _|_|_|    _|_|    _|_|_|  _|_|    
@@ -25,10 +25,10 @@ So why not embed XXE payloads in them?
 That was done by a great [research](http://oxmlxxe.github.io/reveal.js/slides.html#/) by Will Vandevanter (`_will_is`)
 To create such documents with embedded payloads there is a famous tool called [oxml_xxe](https://github.com/BuffaloWill/oxml_xxe). 
 
-But. It is not convinient to use `oxml_xxe` when you need to create hundreds of documents with payloads in different places.
+But. It is not convenient to use `oxml_xxe` when you need to create hundreds of documents with payloads in different places.
 So there it goes - Docem.
 
-It works like that: You specify sample document - that is a doc that has some `magic_symbols` (in illustratuin it is `፨` (in program it is constant `XXCb8bBA9XX`))  that will be replaced by your refernce to a payload in case of XXE payload, or will be replaces by your XSS payload.
+It works like that: You specify sample document - that is a doc that has some `magic_symbols` (in illustrations it is marked as `፨` (in program it is constant `XXCb8bBA9XX`))  that will be replaced by your reference to a payload in case of XXE payload, or will be replaces by your XSS payload.
 
 Also there are three different types of `payload_type` - every type determine how every `magic_symbol` will be processed for a given file in a document.
 Every `payload_type` described in section `Usage`.
@@ -65,7 +65,7 @@ python3 docem.py --help
 - optional
 	- `-pt` - payload type
 		- `per_document` - (default mode) for every payload, embed payload in all places in all files and create new doc
-		- `per_file` - for every payload, for every file inside a docuement, for all places inside file embed payload and create new doc
+		- `per_file` - for every payload, for every file inside a document, for all places inside file embed payload and create new doc
 		- `per_place` - for every payload, for every place in every file, embed payload and create new doc
 	- `-pf` - payoload file
 	- `-kt` - do not delete temp folders in tmp 
@@ -74,10 +74,15 @@ python3 docem.py --help
 
 Examples 
 ```bash
-./docem.py -s samples/xxe/sample_oxml_xxe_mod0/ -pm xss -pf payloads/xss_all.txt -pt per_document -kt -sx docx
+./docem.py -s samples/xxe/docx_sample_oxml_xxe_mod0/ -pm xss -pf payloads/xxe_special_6.txt -pt per_document -kt -sx docx
+./docem.py -s samples/xxe/docx_sample_oxml_xxe_mod1/ -pm xss -pf payloads/xxe_special_1.txt -pt per_file -kt -sx docx
 ./docem.py -s samples/xxe/sample_oxml_xxe_mod1.docx -pm xxe -pf payloads/xxe_special_2.txt -kt -pt per_place
 ./docem.py -s samples/xss_sample_0.odt -pm xss -pf payloads/xss_tiny.txt -pm per_place
-./docem.py -s samples/xxe/sample_oxml_xxe_mod0/ -pm xss -pf payloads/xss_all.txt -pt per_file -kt -sx docx
+```
+
+An equivalent to a `docx` file created by OXML_XXE 
+```
+./docem.py -s samples/xxe/docx_sample_oxml_xxe_mod0/ -pm xss -pf payloads/xxe_special_6.txt -pt per_document -kt -sx docx
 ```
 
 
@@ -86,7 +91,7 @@ Examples
 ### Via new file
 
 1. Extract your document `example.docx`
-2. Add magic symbols - `፨` (yes, literally - those fancy 5 dots) in places where you want payloads to be embed
+2. Add magic symbols - `XXCb8bBA9XX` - (depicted as `፨` in illustrations of this readme) in places where you want payloads to be embed
 3. Zip your new sample into `example_modified0.zip`
 4. Rename extension - `example_modified0.docx`
 5. Use new sample with tool
