@@ -1,2 +1,4 @@
 tmp/*
 tmp*
+.venv
+venv

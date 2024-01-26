@@ -413,8 +413,103 @@ def interface_ask_user(embedding_info,paths):
 		exit()
 
 
-def interface_print_logo():
-	logo = '''
+"""
+Class that contains the list of payloads
+"""
+class Payloads:
+	payloads = []
+
+	def _readfile(self, path_to_file: str) -> list:
+		if os.path.exists(path_to_file):
+			with open(path_to_file, 'r') as file:
+				file_as_array = file.read().splitlines()
+		else:
+			raise Exception
+		
+		return(file_as_array)
+		
+
+	def __init__(self, path_to_file: str): 
+		self.payloads = self._readfile(path_to_file)
+		for p in range(len(self.payloads)):
+			payloads['payload_%d' % p] = payloads[p]
+
+"""
+Class that contains the provided sample
+which will be used for the injection
+"""
+class Sample:
+
+
+	def __init__(self, sample_path) -> None:	
+		self.sample_path = sample_path
+		scrip_path =  os.path.dirname(os.path.relpath(__file__))
+		self.tmp_folder_path = scrip_path + '/tmp/'
+
+		self.is_sample_folder = os.path.isdir(self.sample_path)
+		self.sample_file_name = ''
+
+		if self.is_sample_folder:
+			# If path was set as 'samples/xxe/sample_oxml_xxe_mod1/'
+			if len(self.sample_path) - 1 == self.sample_path.rfind('/'):
+				self.sample_path = self.sample_path[:-1]
+
+			self.sample_file_name = self.sample_path.split('/')[-1]
+			self.sample_file_ext = args.sample_extension
+			
+			self.copied_file_path = ''
+
+		else:
+			# Create separate variables for an original file
+			self.sample_file_name = self.sample_path.split('/')[-1].split('.')[0]
+			self.sample_file_ext = self.sample_path.split('/')[-1].split('.')[1]
+
+			self.copied_file_path = f'{self.tmp_folder_path}{self.sample_file_name}.zip'
+
+		# create variables for unzipped files
+		# self.unzipped_file_name = f'{self.sample_file_name}_{self.sample_file_ext}'
+		self.unzipped_folder_path = f'{self.tmp_folder_path}{self.sample_file_name}_{self.sample_file_ext}/'
+		# self.copied_file_filename = f'{self.sample_file_name}_{self.sample_file_ext}'
+		# self.copied_file_folder_path = f'{self.tmp_folder_path}{self.unzipped_file_name}/'
+
+# 	def print_setup()
+# 			out = f"""
+# sample path: {self.sample_path}
+# sample is a dir: {self.is_sample_folder}
+
+# """ 
+
+
+		
+	def unpack(self):
+		# Sample is a file
+		if self.is_sample_folder:
+			shutil.copytree(
+				src = self.sample_path,
+				dst = self.unzipped_folder_path)
+		# Sample is a folder
+		else:
+			shutil.copy(
+				src = self.sample_path,
+			    dst = self.copied_file_path)
+			shutil.unpack_archive(
+				filename = self.copied_file_path, 
+				extract_dir = self.unzipped_folder_path)
+					
+
+	def asdf():
+		c = 0
+
+	def generate_document_tree(paths):
+		for root, dirs, files in os.walk(
+			self.unzipped_folder_path, topdown = False):
+
+			path_to_file = os.path.join(root, full_name)
+			path_in_tmp = path_to_file.replace()
+
+class Interface:
+	def print_logo(self):
+		logo = '''
 
 _|_|_|                                                  
 _|    _|    _|_|      _|_|_|    _|_|    _|_|_|  _|_|    
@@ -423,40 +518,90 @@ _|    _|  _|    _|  _|        _|        _|    _|    _|
 _|_|_|      _|_|      _|_|_|    _|_|_|  _|    _|    _|  
                                                                                                         
 	'''
-	version = '1.3'
-	print(logo)
-	print('Current version: %s\n'%version)
+		version = '1.3'
+		print(logo)
+		print('Current version: %s\n'%version)
 
-def interface_print_example():
-	examples = 	[
-		'./docem.py -s samples/xxe/docx_sample_oxml_xxe_mod0/ -pm xss -pf payloads/xxe_special_6.txt -pt per_document -kt -sx docx',
-		'./docem.py -s samples/xxe/docx_sample_oxml_xxe_mod1/ -pm xss -pf payloads/xxe_special_1.txt -pt per_file -kt -sx docx',
-		'./docem.py -s samples/xxe/sample_oxml_xxe_mod1.docx -pm xxe -pf payloads/xxe_special_2.txt -kt -pt per_place',
-		'./docem.py -s samples/xss_sample_0.odt -pm xss -pf payloads/xss_tiny.txt -pm per_place'
-	]
-	
-	print('Examples:\n%s\n' % '\n'.join(e for e in examples))
+	def print_examples(self):
+		examples = 	[
+			'./docem.py -s samples/xxe/docx_sample_oxml_xxe_mod0/ -pm xss -pf payloads/xxe_special_6.txt -pt per_document -kt -sx docx',
+			'./docem.py -s samples/xxe/docx_sample_oxml_xxe_mod1/ -pm xss -pf payloads/xxe_special_1.txt -pt per_file -kt -sx docx',
+			'./docem.py -s samples/xxe/sample_oxml_xxe_mod1.docx -pm xxe -pf payloads/xxe_special_2.txt -kt -pt per_place',
+			'./docem.py -s samples/xss_sample_0.odt -pm xss -pf payloads/xss_tiny.txt -pm per_place'
+		]
+		
+		print('Examples:\n%s\n' % '\n'.join(e for e in examples))
+		
+
+def new_name():
+	interface = Interface()
+	interface.print_logo()
+	interface.print_examples()
+	# ARGPARSE goes here
+
+	# Symbol that is used to determine a place where to place payload
+	# magic_symbol = 'XXCb8bBA9XX'
+
+	p = Payloads('./payloads/xss_tiny.txt')
+
+	s = Sample('./samples/xss/xss_sample_0.docx')
+	# s.print_setup
+	print('\n=========== Current setup ===========')
+	print('sample file path:\t\t', s.sample_path)
+	print('sample is a directory:\t', s.is_sample_folder)
+	print('payload mode:\t\t', '`args.payload_mode')
+	print('payload file:\t\t', '`args.payload_file')
+	print('payload type:\t\t', '`args.payload_type')
+	print('number of payloads:\t', len(payloads))
+	print('keep unpacked files:\t', '`args.keep_tmp')
+
+	s.unpack()
+	# I'm here
+	tree = document_tree_generate(paths)
+	tree_embedding, embedding_info = document_tree_embedding_points(paths, tree, magic_symbol)
+	embedding_info['num_of_payloads'] = len(payloads)
+	embedding_info['payload_type'] = args.payload_type
+
+	#make_tmp_clean_again(paths,'original')
+	interface_ask_user(embedding_info,paths)
 
 if __name__ == '__main__':
+	interface = Interface()
+	interface.print_logo()
+	interface.print_examples()
 
-	interface_print_logo()
-	interface_print_example()
-
-	# Working with arguments
-	parser = argparse.ArgumentParser(description='Create docx,odt,pptx,etc files with XXE/XSS payloads')
+	parser = argparse.ArgumentParser(
+		description='Create docx, odt, pptx files with XXE/XSS payloads')
 	
 	optional = parser._action_groups.pop()
 	required = parser.add_argument_group('required arguments')
 	
-	required.add_argument('-s', dest='sample', type=str, help='path to sample file')
-	required.add_argument('-pm', dest='payload_mode',type=str,choices=['xss','xxe'],help='payload mode: embedding XXE or XSS in a file')
+	required.add_argument('-s', 
+							dest='sample', 
+							type=str, 
+							help='path to sample file')
+	required.add_argument('-pm', 
+							dest='payload_mode',
+							type=str,choices=['xss','xxe'],
+							help='payload mode: embedding XXE or XSS in a file')
 
-	#optional.add_argument('-xu', dest='xxe_uri', type=str, help='URI to use in XXE payload - file as \'file:///etc/lsb-release\' or url as \'http://example.com\'')
-	optional.add_argument('-kt', dest='keep_tmp', action='store_true', help='do not delete unpacked and modified folders')
-	optional.add_argument('-pt', dest='payload_type', type=str, help='how many payloads will be in one file. per_document is default',choices=['per_place','per_file','per_document'],default='per_document')
-	#optional.add_argument('-st', dest='sample_type', type=str, help='d ',choices=['doc','folder'],default='doc')
-	optional.add_argument('-sx', dest='sample_extension', type=str, help='d ')
-	optional.add_argument('-pf', dest='payload_file',type=str, help='path to a file with payloads to embed',default='payloads/no_payload.txt')
+	optional.add_argument('-kt',
+							dest='keep_tmp',
+							action='store_true',
+							help='do not delete unpacked and modified folders')
+	optional.add_argument('-pt',
+							dest='payload_type',
+							type=str,
+							help='how many payloads will be in one file. per_document is default', 
+							choices=['per_place','per_file','per_document'],
+							default='per_document')
+	optional.add_argument('-sx', 
+						dest='sample_extension', 
+						type=str, help='d ')
+	optional.add_argument('-pf', 
+						dest='payload_file',
+						type=str, help='path to a file with payloads to embed',
+						default='payloads/no_payload.txt')
 
 	parser._action_groups.append(optional)
 	args = parser.parse_args()	
@@ -470,7 +615,6 @@ if __name__ == '__main__':
 
 		if os.path.exists(args.sample) and os.path.exists(args.payload_file):
 			print('Document Embed XSS & XXE tool')
-			
 			print('\nCurrent magic_symbol: ',magic_symbol)
 
 			payloads = payloads_read_file(args.payload_file)
@@ -487,13 +631,13 @@ if __name__ == '__main__':
 				os.mkdir(paths["path_to_tmp"])
 
 			print('\n=========== Current setup ===========')
-			print('sample file path:\t\t',args.sample)
-			print('sample is a directory:\t',paths['sample_type_is_folder'])
-			print('payload mode:\t\t',args.payload_mode)
-			print('payload file:\t\t',args.payload_file)
-			print('payload type:\t\t',args.payload_type)
-			print('number of payloads:\t',len(payloads))
-			print('keep unpacked files:\t',args.keep_tmp)
+			print('sample file path:\t\t', args.sample)
+			print('sample is a directory:\t', paths['sample_type_is_folder'])
+			print('payload mode:\t\t', args.payload_mode)
+			print('payload file:\t\t', args.payload_file)
+			print('payload type:\t\t', args.payload_type)
+			print('number of payloads:\t', len(payloads))
+			print('keep unpacked files:\t', args.keep_tmp)
 
 			document_unpack(paths)
 			tree = document_tree_generate(paths)
@@ -544,7 +688,11 @@ if __name__ == '__main__':
 	
 						print('\t%s'%single_file_key)
 
-						docuemnt_prepare_future_paths(paths, args.payload_type, single_payload_key, single_file_key)
+						docuemnt_prepare_future_paths(
+							paths, 
+							args.payload_type, 
+							single_payload_key, 
+							single_file_key)
 						document_tree_embedding_append_mod_paths(paths, tree_embedding)						
 						document_copy_dir(paths)
 
@@ -573,7 +721,11 @@ if __name__ == '__main__':
 					
 						for offset_in_single_file in tree_embedding[single_file_key]['places']:
 
-							docuemnt_prepare_future_paths(paths, args.payload_type, single_payload_key, single_file_key, offset_in_single_file)
+							docuemnt_prepare_future_paths(
+								paths, 
+								args.payload_type, 
+								single_payload_key, 
+								single_file_key, offset_in_single_file)
 							document_tree_embedding_append_mod_paths(paths, tree_embedding)
 							document_copy_dir(paths)
 
