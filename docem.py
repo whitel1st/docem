@@ -145,7 +145,10 @@ def document_unpack(paths):
 		# debug
 		#print(paths["path_to_unzipped_folder_original"])
 		
-
+"""
+For a specified folder generates a filetree
+that is returen in a json 
+"""
 def document_tree_generate(paths, opt=1):
 	files_inside_unpacked_dir = {}
 	for root, dirs, files in os.walk(paths["path_to_unzipped_folder_original"], topdown = False):
@@ -248,7 +251,7 @@ def document_embed_payloads(payload_mode,payload_type,single_file_dict, payload_
 					single_file_mod += xxe_current_payload_dict['reference'] + single_file_dict['content'][offset_in_single_file+1:] 
 
 					# Clear other places in a file
-					single_file_mod = single_file_mod.replace(magic_symbol,'')	
+					single_file_mod = single_file_mod.replace(magic_symbol,'')
 
 
 			# If there is no reference
@@ -380,7 +383,7 @@ def make_embedding_tree_clear_again(tree_embedding, current_file_key):
 			cleared_file.write(cleared_file_content)
 			cleared_file.close()
 
-def interface_ask_user(embedding_info,paths):
+def interface_ask_user(embedding_info, paths):
 
 	# embedding_info['num_of_files_to_embed'] = len(tree_embedding)
 	# embedding_info['num_of_places_to_embed'] = len(tree_embedding)
@@ -441,6 +444,9 @@ which will be used for the injection
 class Sample:
 
 
+	self.embed_files = []
+	self.embed_count_places = 0
+
 	def __init__(self, sample_path) -> None:	
 		self.sample_path = sample_path
 		scrip_path =  os.path.dirname(os.path.relpath(__file__))
@@ -500,12 +506,150 @@ class Sample:
 	def asdf():
 		c = 0
 
-	def generate_document_tree(paths):
+	def generate_document_tree(self, paths):
 		for root, dirs, files in os.walk(
 			self.unzipped_folder_path, topdown = False):
 
+			for filename in files:
+				file_path = os.path.join(root, filename)
+				file_path_tmp = file_path.replace(self.unzipped_folder_path,'')
+
 			path_to_file = os.path.join(root, full_name)
 			path_in_tmp = path_to_file.replace()
+	
+	"""
+	Finds all places where payloads will be embedded.
+	Saves them in a class variable.
+	Variable is a list of dicts that contain 
+		path - path to a file
+		places - indexes in a file where to embed
+		counts - total number of 
+	payload will be embedded
+	"""
+	def find_embedding_points(self) -> None:
+		for root, dirs, files in os.walk(
+			self.unzipped_folder_path, topdown = False):		
+			for file in files:
+				if file.endswith(('.xml','.txt','.rels','.vml')): 
+					with open(file, 'r') as f:
+						file_in_sample = f.read()
+
+						if file_in_sample.count(magic_symbol):
+							to_embed = {
+								'file' : file_in_sample,
+								'places' : [i for i in range(len(file_in_sample)) if file_in_sample.startswith(magic_symbol, i)],
+								# 'content' : file_in_sample
+								}
+							self.embed_files.append(to_embed)
+							self.embed_count_places += len(to_embed['places'])
+							print('\t%d\tsymbols in %s'%(to_embed['count'], to_embed['file']))
+
+
+	def _inject_header(self, ptype:str, payload, file_content) -> str:
+		if ptype == 'xxe':
+			# Ending with finding where to place 
+			# payload with <DOCTYPE>
+			offset_xml_start = int(file_content.find('<?xml'))
+			offset_xml_closed_bracket = file_content.find('>',offset_xml_start) + 1 
+			file_content = file_content[:offset_xml_start] +  payload['vector'] + file_content[offset_xml_start:] 
+			# single_file_mod = single_file_mod[:offset_xml_closed_bracket] + payload['vector'] + single_file_mod[offset_xml_place_closed_bracket:]
+
+		else:
+			pass
+
+		return file_content
+
+
+	def _pack_file(self):
+
+		# postfix = f'{ptype}-{single_place}'
+		# if ptype == 'per_place':
+		# 	postfix = f'{ptype}-{single_place}-{payload_key}-{offset}' 
+
+		# elif ptype == 'per_file':
+		# 	postfix = f'{ptype}-{single_place}-{payload_key}' 
+
+		# elif ptype == 'per_document':
+		# 	postfix = f'{ptype}-{single_place}' 
+
+
+		# postfix += '_' + str(time.time()).replace('.','') 
+
+		# paths['modified_file_name'] = paths['original_file_name'] + '-' + postfix 
+		# paths['path_to_unzipped_folder_modified'] = paths['path_to_tmp'] + paths['modified_file_name'] + '/'
+		# paths['path_to_modified_file'] = paths['path_to_tmp'] + paths['modified_file_name'] + '.zip'
+		# paths['path_to_packetd_file'] = paths['path_to_tmp'] +  paths['modified_file_name'] + '.' +  paths['original_file_ext']
+
+		shutil.make_archive(
+			base_name = self.modified_file_name,
+			root_dir = self.unzipped_folder_path,
+			format='zip'
+		)
+		# Split - because shutil will add .zip anyway
+		#print(paths['path_to_unzipped_folder_modified'])
+		shutil.make_archive(
+			base_name=paths['path_to_modified_file'].split('.')[0],
+					  root_dir=paths['path_to_unzipped_folder_modified'],
+					  format='zip')
+
+		# shutil.copy(paths['path_to_modified_file'], paths['path_to_packetd_file'])
+
+		# For debug
+		#print('\n%s'%paths['path_to_modified_file'])
+		#print(paths['path_to_packetd_file'])
+
+		# # copy & rename zip to odt
+		# shutil.copy(paths['path_to_modified_file'], paths['path_to_packetd_file'])
+
+
+	def _inject_clear_places(self, file):
+		a = 0
+	"""
+	Injects single payload to all places from embed_tree
+	pm - payload mode
+	pt - payload type
+	"""
+	def inject_payload(self, payload: dict, pm: str, pt: str) -> None:
+		if ptype == 'per_document':
+			# Replace all magic symbols in all files
+			# where there were found
+			# and pack the result
+			for embed_f in self.embed_files:
+				with open(embed_f['file'], 'w') as file_to_inj:
+					file_to_inj_content = file_to_inj.read()
+					file_to_inj_content.replace(magic_symbol, payload)
+					file_to_inj_content = self._inject_header(ptype, payload, file_to_inj_content)
+					file_to_inj.write(file_to_inj_content)
+
+			# TODO: clear other places in a file
+			self._pack_file()
+		elif ptype == 'per_file':
+			# Replace all magic symbols in each file
+			# where there were found
+			# and pack individual results with substitued files
+			for embed_f in self.embed_files:
+				with open(embed_f['file'], 'w') as file_to_inj:
+					file_to_inj_content =  file_to_inj.read()
+					file_to_inj_content.replace(magic_symbol, payload)
+					file_to_inj_content = self._inject_header(ptype, payload, file_to_inj_content)
+					file_to_inj.write(file_to_inj_content)
+
+				# TODO: clear other places in a file
+				#_pack_file()
+		elif ptype == 'per_place':
+			# Replace each magic symbol in each file
+			# where there were found
+			# and pack individual result with substitued index
+			for embed_f in self.embed_files:
+				for embed_index in embed_f['places']:
+					with open(embed_f['file'], 'w') as file_to_inj:
+						file_to_inj_content = file_to_inj.read()
+						file_to_inj_content = file_to_inj_content[place] + magic_symbol + file_to_inj_content[place + 1]
+						file_to_inj_content = self._inject_header(ptype, payload, file_to_inj_content)
+						file_to_inj.write(file_to_inj_content)
+					# TODO: clear other places in a file
+					#_pack file
+
 
 class Interface:
 	def print_logo(self):
@@ -556,14 +700,15 @@ def new_name():
 	print('keep unpacked files:\t', '`args.keep_tmp')
 
 	s.unpack()
+	s.find_embedding_points()
+	
+	print(f'{len(s.embed_files)} total files to embed (used as modifier with -pt per_file)')
+	print(f'{s.embed_count_places} places in a doc file to embed (used as modifier with -pt per_place)')
 	# I'm here
-	tree = document_tree_generate(paths)
-	tree_embedding, embedding_info = document_tree_embedding_points(paths, tree, magic_symbol)
-	embedding_info['num_of_payloads'] = len(payloads)
-	embedding_info['payload_type'] = args.payload_type
 
-	#make_tmp_clean_again(paths,'original')
-	interface_ask_user(embedding_info,paths)
+	s.inject_payloads()
+
+
 
 if __name__ == '__main__':
 	interface = Interface()
