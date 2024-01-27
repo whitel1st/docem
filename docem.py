@@ -159,14 +159,13 @@ class Sample:
 			os.mkdir(self.tmp_folder_path)
 	def _delete_tmp(self) -> None:
 		if os.path.exists(self.tmp_folder_path):
-			os.remove(self.tmp_folder_path)
-# 	def print_setup()
-# 			out = f"""
-# sample path: {self.sample_path}
-# sample is a dir: {self.is_sample_folder}
+			shutil.rmtree(self.tmp_folder_path)
 
-# """ 
 
+	"""
+	Copy sample file/folder to the tmp location
+	If a sample is a file - zip extract
+	"""
 	def unpack(self):
 		# Sample is a file
 		if self.is_sample_folder:
@@ -222,7 +221,11 @@ class Sample:
 							self.embed_count_places += len(to_embed['places'])
 							print(f'{len(to_embed["places"])} symbols in {to_embed["filepath"]}')
 
-	def _verify_docs_creation(self, pmod, payloads):
+	"""
+	Print a message to a user about a number
+	of files that would be created
+	"""
+	def ask_to_confirm_docs_creation(self, pmod, payloads):
 		print(f'{len(self.embed_files)} total files to embed (used as modifier with -pt per_file')
 		print(f'{self.embed_count_places} total places to embed (used as modifier with -pt per_place)')
 
@@ -248,14 +251,17 @@ class Sample:
 			exit()
 
 
+	"""
+	Inject payload header for XXE payloads
+	for XSS payloads - do nothing
+	"""
 	def _inject_header(self, ptype:str, payload, file_content) -> str:
 		if ptype == 'xxe':
-			# Ending with finding where to place 
+			# Ending with finding where to place  
 			# payload with <DOCTYPE>
 			offset_xml_start = int(file_content.find('<?xml'))
 			offset_xml_closed_bracket = file_content.find('>',offset_xml_start) + 1 
-			file_content = file_content[:offset_xml_start] +  payload['vector'] + file_content[offset_xml_start:] 
-			# single_file_mod = single_file_mod[:offset_xml_closed_bracket] + payload['vector'] + single_file_mod[offset_xml_place_closed_bracket:]
+			file_content = file_content[:offset_xml_start] +  payload['vector'] + file_content[offset_xml_start:]
 
 		else:
 			pass
@@ -433,6 +439,8 @@ if __name__ == '__main__':
 				ptype = args.payload_type)
 			s = Sample(args.sample)
 
+			s._delete_tmp()
+
 			print('\n=========== Current setup ===========')
 			print('sample file path:\t\t', s.sample_path)
 			print('sample is a directory:\t', s.is_sample_folder)
@@ -444,9 +452,14 @@ if __name__ == '__main__':
 
 			s.unpack()
 			s.find_embedding_points()
-			s._verify_docs_creation(args.payload_mode, p.payloads)
-			s.inject_payload()
-			s._delete_tmp()
+			s.ask_to_confirm_docs_creation(args.payload_mode, p.payloads)
+			for payload in p.payloads: 
+				s.inject_payload(
+					payload = p,
+					pmode = args.payload_mode,
+					ptype = args.payload_type
+				)
+			
 					
 		else:
 			print("Error: One of specified files: '%s' or '%s' - does not exist"% (args.sample, args.payload_file))
