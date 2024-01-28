@@ -11,75 +11,9 @@ import random
 # To work with XXE payloads
 import json
 import time
+import copy
 
 from lxml import etree, objectify
-
-def make_tmp_clean_again(paths, mode):
-
-	if mode ==  'original':
-		if os.path.exists(paths['path_to_unzipped_folder_original']):
-			shutil.rmtree(paths['path_to_unzipped_folder_original'])
-
-		if os.path.exists(paths['path_to_copied_file']):
-			os.remove(paths['path_to_copied_file'])
-
-	elif mode == 'copy':
-
-		if os.path.exists(paths['path_to_unzipped_folder_modified']):
-			shutil.rmtree(paths['path_to_unzipped_folder_modified'])
-
-		if os.path.exists(paths['path_to_modified_file']):
-			os.remove(paths['path_to_modified_file'])
-
-
-# Prepare path where document will be unzipped
-def docuemnt_prepare_future_paths(paths, payload_type, payload_key, single_place='', offset=''):
-
-
-	if payload_type == 'per_place':
-		#postfix = '%s+%s'%(payload_type, payload) 
-		postfix = '%s-%s-%s-%s'%(payload_type, single_place, payload_key, offset) 
-
-	elif payload_type == 'per_file':
-		#postfix = '%s-%s'%(payload_type, payload) 
-		postfix = '%s-%s-%s'%(payload_type, single_place, payload_key) 
-
-	elif payload_type == 'per_document':
-		postfix = '%s-%s'%(payload_type, payload_key) 
-
-
-	postfix += '_' + str(time.time()).replace('.','') 
-
-	paths['modified_file_name'] = paths['original_file_name'] + '-' + postfix 
-	paths['path_to_unzipped_folder_modified'] = paths['path_to_tmp'] + paths['modified_file_name'] + '/'
-	paths['path_to_modified_file'] = paths['path_to_tmp'] + paths['modified_file_name'] + '.zip'
-	paths['path_to_packetd_file'] = paths['path_to_tmp'] +  paths['modified_file_name'] + '.' +  paths['original_file_ext']
-
-	# For debug	
-	#print('postfix',postfix)
-	#print("paths['original_file_name']",paths['original_file_name'])
-	#print("paths['modified_file_name']", paths['modified_file_name'])
-	#print("paths['path_to_unzipped_folder_modified']",paths['path_to_unzipped_folder_modified'])
-
-
-
-
-def make_embedding_tree_clear_again(tree_embedding, current_file_key):
-
-	to_clear_files = dict(tree_embedding)
-	del(to_clear_files[current_file_key])
-
-	# for debug
-	#print(tree_embedding.keys())
-	#print(to_clear_files.keys())
-	
-	for to_clear_file_key in to_clear_files.keys():
-		cleared_file_content = to_clear_files[to_clear_file_key]['content'].replace(magic_symbol,'')
-
-		with open(to_clear_files[to_clear_file_key]['tmp_mod_path'],'w') as cleared_file:
-			cleared_file.write(cleared_file_content)
-			cleared_file.close()
-
 
 
 """
@@ -126,7 +60,18 @@ class Sample:
 	sample_path = ''
 	is_sample_folder = None
 
-	embed_files = []
+
+	# embed_files - a dictionary that stores a list
+	# of files that contain magic_symbols
+	# key - path to a file
+	# value - array of indices where magic_symbols are present
+	# embed_files = {
+	# 	'app.xml':[1,32,423],
+	# 	'core/file.xml':[32,423],
+	# 	'ref/new/test.xml':[5],
+	# }
+	# To Do change it to a struct
+	embed_files = {}
 	embed_count_places = 0
 
 	"""
@@ -165,6 +110,7 @@ class Sample:
 		self.unzipped_folder_path = f'{self.tmp_folder_path}{self.sample_file_name}_{self.sample_file_ext}/'
 		# self.copied_file_filename = f'{self.sample_file_name}_{self.sample_file_ext}'
 		# self.copied_file_folder_path = f'{self.tmp_folder_path}{self.unzipped_file_name}/'
+		
 
 
 	# Creates tmp folder if it does not exist
@@ -222,14 +168,18 @@ class Sample:
 						file_in_sample = f.read()
 
 						if file_in_sample.count(magic_symbol):
-							to_embed = {
-								'filepath' : file_fullpath,
-								'places' : [i for i in range(len(file_in_sample)) if file_in_sample.startswith(magic_symbol, i)],
-								# 'content' : file_in_sample
-								}
-							self.embed_files.append(to_embed)
-							self.embed_count_places += len(to_embed['places'])
-							print(f'{len(to_embed["places"])} symbols in {to_embed["filepath"]}')
+							# to_embed = {
+							# 	'filepath' : file_fullpath,
+							# 	'places' : [i for i in range(len(file_in_sample)) if file_in_sample.startswith(magic_symbol, i)],
+							# 	# 'content' : file_in_sample
+							# 	}
+							# Add a file and a list of indices with magic symbols to the list
+							places = [i for i in range(len(file_in_sample)) if file_in_sample.startswith(magic_symbol, i)]
+							file_path = file_fullpath.replace(self.unzipped_folder_path,'')
+							self.embed_files[file_path] = places
+							
+							self.embed_count_places += len(places)
+							print(f'{len(places)} symbols in {file_path}')
 
 	"""
 	Print a message to a user about a number
@@ -253,12 +203,12 @@ class Sample:
 		print('modifier depends on payload_type (-pt)')
 		print(f'Files to be created {num_of_files}')
 
-		# To be sure that you want to create that amount of documents
-		answer = input('Continue?(y/n): ')
-		
-		if answer == 'n':
-			self._delete_folder(self.tmp_folder_path)
-			exit()
+		# For debug
+		# # To be sure that you want to create that amount of documents
+		# answer = input('\nContinue?(y/n): ')
+		# if answer == 'n':
+		# 	self._delete_folder(self.tmp_folder_path)
+		# 	exit()
 
 
 	"""
@@ -307,11 +257,61 @@ class Sample:
 	def _rename_object(self, src: str, dst: str) -> None:
 		os.rename(src=src, dst=dst)
 		
+
+	"""
+	Prepare paths for a new file that
+	will have specif injection
+	pmode: payload_mode
+	ptype: payload_type
+	pfile: payload file - used for pmode = per_file
+	pplace: payload file - used for pmode = per_file / per_place
+	"""
+	def __prepare_paths_for_injected_file(self, pmode:str, ptype:str, pfile: str = '', pplace: str = '') -> None:
+		suffix = ''
+		if pfile and pplace:
+			pfile = pfile[pfile.rfind('/') + 1:].replace('.','_')
+			final_file_name_core = f'{self.sample_file_name}-{pmode}_{ptype}_{uuid.uuid4().hex[:5]}_{pfile}_{pplace}'
+		elif pfile:
+			final_file_name_core = f'{self.sample_file_name}-{pmode}_{ptype}_{uuid.uuid4().hex[:5]}_{pfile}'
+			pass
+		else:
+			final_file_name_core = f'{self.sample_file_name}-{pmode}_{ptype}_{uuid.uuid4().hex[:5]}'
+		
+
+		self.final_file_folder = f'{self.tmp_folder_path}{final_file_name_core}/'
+		self.final_file_packed_zip = f'{self.tmp_folder_path}{final_file_name_core}.zip'
+		self.final_file_packed_ext = f'{self.tmp_folder_path}{final_file_name_core}.{self.sample_file_ext}'
+
+	"""
+	Create new folder for specific injection
+	"""
+	def _copy_before_injection(self):
+		self._copy_folder(
+			src = self.unzipped_folder_path, 
+			dst = self.final_file_folder)
+
+	"""
+	Archive and rename previously created
+	new folder for specific injection
+	"""
+	def _pack_after_injection(self):
+		self._archive_folder(
+			src_folder_path = self.final_file_folder,
+			dst_archive_path = self.final_file_packed_zip
+		)
+		self._rename_object(
+			src = self.final_file_packed_zip,
+			dst = self.final_file_packed_ext
+		)
+
+		self._delete_folder(self.final_file_folder)
+
+		print(f'New file with payload created: {self.final_file_packed_ext.replace(self.tmp_folder_path,"tmp/")}')
+
 	"""
 	Copy 
 	"""
 	def pack_file(self, pmode: str, ptype: str):
-
 
 		final_file_name_core = f'{self.sample_file_name}-{pmode}_{ptype}_{uuid.uuid4().hex[:5]}'
 		final_file_folder = f'{self.tmp_folder_path}{final_file_name_core}/'
@@ -339,18 +339,33 @@ class Sample:
 	For the specified directory remove magic_symbols
 	from all of the nested files
 	"""
-	def _remove_magic_symbols(self, folder_path) -> None:
-		for root, dirs, files in os.walk(
-			folder_path, topdown = False):		
-			for file in files:
-				if file.endswith(magic_file_extensions): 
-					file_fullpath = f'{root}/{file}'
-					with open(file_fullpath, 'r') as f:
-						file_content = f.read()	
-						file_content= file_content.replace(magic_symbol, '')
-					with open(file_fullpath, 'w') as f:
-						f.write(file_content)
+	# def _remove_magic_symbols(self, folder_path) -> None:
+	# 	for root, dirs, files in os.walk(
+	# 		folder_path, topdown = False):		
+	# 		for file in files:
+	# 			if file.endswith(magic_file_extensions): 
+	# 				file_fullpath = f'{root}/{file}'
+	# 				with open(file_fullpath, 'r') as f:
+	# 					file_content = f.read()	
+	# 					file_content= file_content.replace(magic_symbol, '')
+	# 				with open(file_fullpath, 'w') as f:
+	# 					f.write(file_content)
 
+	def _remove_magic_symbols(self, base_folder:str, list_of_relative_paths: dict) -> None:
+		for file in list_of_relative_paths:
+			file_fp = base_folder + file
+			with open(file_fp, 'r') as f:
+				file_content = f.read()	
+				file_content= file_content.replace(magic_symbol, '')
+			with open(file_fp, 'w') as f:
+				f.write(file_content)
+	
+	def _convert_tmp_folder_path_to_specific_payload_path(self, path: str) -> str:
+		return(path.replace(self.unzipped_folder_path, self.final_file_folder))
+		
+	def __test_unzip_and_verify(self, path):
+		
+		pass
 
 	"""
 	Injects single payload to all places from embed_tree
@@ -362,43 +377,68 @@ class Sample:
 			# Replace all magic symbols in all files
 			# where there were found
 			# and pack the result
-			for embed_f in self.embed_files:
-				with open(embed_f['filepath'], 'r') as file_to_inj:
+			self.__prepare_paths_for_injected_file(pmode=pmode, ptype=ptype)
+			self._copy_before_injection()
+
+			for embed_f_path in self.embed_files:
+				embed_f_path = self.final_file_folder + embed_f_path
+				with open(embed_f_path, 'r') as file_to_inj:
 					file_to_inj_content = file_to_inj.read()
 					file_to_inj_content = file_to_inj_content.replace(magic_symbol, payload['reference'])
 					file_to_inj_content = self._inject_header(ptype, payload, file_to_inj_content)
-				with open(embed_f['filepath'], 'w') as file_to_inj:
+				with open(embed_f_path, 'w') as file_to_inj:
 					file_to_inj.write(file_to_inj_content)
-			self.pack_file(pmode, ptype)
+			self._pack_after_injection()
 
 		elif pmode == 'per_file':
 			# Replace all magic symbols in each file
 			# where there were found
 			# and pack individual results with substitued files
-			for embed_f in self.embed_files:
-				with open(embed_f['filepath'], 'w') as file_to_inj:
-					file_to_inj_content =  file_to_inj.read()
-					file_to_inj_content.replace(magic_symbol, payload)
-					file_to_inj_content = self._inject_header(ptype, payload, file_to_inj_content)
-					file_to_inj.write(file_to_inj_content)
+			for embed_f_path in self.embed_files:
+				self.__prepare_paths_for_injected_file(pmode=pmode, ptype=ptype, pfile=embed_f_path)
+				self._copy_before_injection()
 
-				# TODO: clear other places in a file
-				# self._remove_magic_symbols(self.unzipped_folder_path)
-				#_pack_file()
+				embed_f_path = self.final_file_folder + embed_f_path
+				with open(embed_f_path, 'r') as file_to_inj:
+					file_to_inj_content =  file_to_inj.read()
+					file_to_inj_content = file_to_inj_content.replace(magic_symbol, payload['reference'])
+					file_to_inj_content = self._inject_header(ptype, payload, file_to_inj_content)
+				with open(embed_f_path, 'w') as file_to_inj:
+					file_to_inj.write(file_to_inj_content)
+				
+				files_with_magic_symbols_to_remove = copy.deepcopy(self.embed_files)
+				files_with_magic_symbols_to_remove.pop(embed_f_path)
+				self._remove_magic_symbols(
+					base_folder = self.final_file_folder,
+					list_of_relative_paths =self.files_with_magic_symbols_to_remove)
+
+				self._pack_after_injection()
+				
 		elif pmode == 'per_place':
 			# Replace each magic symbol in each file
 			# where there were found
 			# and pack individual result with substitued index
-			for embed_f in self.embed_files:
-				for embed_index in embed_f['places']:
-					with open(embed_f['filepath'], 'w') as file_to_inj:
+			for embed_f_path, embed_f_indices in self.embed_files.items():
+				for index in embed_f_indices:
+
+					self.__prepare_paths_for_injected_file(pmode=pmode, ptype=ptype, pfile=embed_f_path)
+					self._copy_before_injection()
+					embed_f_path = self.final_file_folder + embed_f_path
+
+					with open(embed_f_path, 'r') as file_to_inj:
 						file_to_inj_content = file_to_inj.read()
-						file_to_inj_content = file_to_inj_content[embed_index] + magic_symbol + file_to_inj_content[embed_index + 1]
+						file_to_inj_content = file_to_inj_content[index] + magic_symbol + file_to_inj_content[index + 1]
 						file_to_inj_content = self._inject_header(ptype, payload, file_to_inj_content)
+					with open(embed_f_path, 'w') as file_to_inj:
 						file_to_inj.write(file_to_inj_content)
-					# TODO: clear other places in a file
-					# self._remove_magic_symbols(self.unzipped_folder_path)
-					#_pack file
+					
+					files_with_magic_symbols_to_remove = copy.deepcopy(self.embed_files)
+					files_with_magic_symbols_to_remove.pop(embed_f_path)
+					self._remove_magic_symbols(
+						base_folder = self.final_file_folder,
+						list_of_relative_paths = self.files_with_magic_symbols_to_remove)
+				
+					self._pack_after_injection()
 						
 
 class Interface:
@@ -495,7 +535,7 @@ if __name__ == '__main__':
 
 			s.unpack()
 			s.find_embedding_points()
-			# s.ask_to_confirm_docs_creation(args.payload_mode, p.payloads)
+			s.ask_to_confirm_docs_creation(args.payload_mode, p.list)
 			for payload in p.list: 
 				s.inject_payload(
 					payload = payload,
