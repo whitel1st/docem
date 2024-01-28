@@ -13,7 +13,7 @@
             "args": [
                 "-s","samples/xxe/docx_sample_oxml_xxe_mod1/",
                 "-pt","xxe",
-                "-pf","payloads/xxe_special_1.txt",
+                "-pf","payloads/xxe_special_2.txt",
                 "-pm","per_file",
                 "-sx","docx"
             ],

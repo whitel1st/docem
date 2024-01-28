@@ -6,7 +6,7 @@ _|    _|  _|    _|  _|        _|_|_|_|  _|    _|    _|
 _|    _|  _|    _|  _|        _|        _|    _|    _|  
 _|_|_|      _|_|      _|_|_|    _|_|_|  _|    _|    _|
 
-version 1.3
+version 1.4
 ```
 
 
@@ -60,11 +60,11 @@ python3 docem.py --help
 
 - required args
 	- `-s` - path to a `sample file` or a `sample directory`. That sample will be used to create a document with an attacking vector.
-	- `-pm` - payload mode
+	- `-pt` - payload type
 		- `xss` - XSS - Cross Site Scripting 
 		- `xxe` - XXE - External XML Entity 
 - optional
-	- `-pt` - payload type
+	- `-pm` - payload mode
 		- `per_document` - (default mode) for every payload, embed payload in all places in all files and create new document
 		- `per_file` - for every payload, for every file inside a document, for all places inside a file embed a payload and create a new document
 		- `per_place` - for every payload, for every place in every file, embed a payload and create a new doc
@@ -75,15 +75,15 @@ python3 docem.py --help
 
 Examples 
 ```bash
-./docem.py -s samples/xxe/docx_sample_oxml_xxe_mod0/ -pm xss -pf payloads/xxe_special_6.txt -pt per_document -kt -sx docx
-./docem.py -s samples/xxe/docx_sample_oxml_xxe_mod1/ -pm xss -pf payloads/xxe_special_1.txt -pt per_file -kt -sx docx
-./docem.py -s samples/xxe/sample_oxml_xxe_mod1.docx -pm xxe -pf payloads/xxe_special_2.txt -kt -pt per_place
-./docem.py -s samples/xss_sample_0.odt -pm xss -pf payloads/xss_tiny.txt -pm per_place
+./docem.py -s samples/xxe/docx_sample_oxml_xxe_mod0/ -pt xxe -pf payloads/xxe_special_6.txt -pm per_document -kt -sx docx,
+./docem.py -s samples/xxe/docx_sample_oxml_xxe_mod1/ -pt xxe -pf payloads/xxe_special_1.txt -pm per_file -kt -sx docx,
+./docem.py -s samples/xxe/sample_oxml_xxe_mod1.docx -pt xxe -pf payloads/xxe_special_2.txt -kt -pm per_place,
+./docem.py -s samples/xss_sample_0.odt -pt xss -pf payloads/xss_tiny.txt -pm per_place
 ```
 
-An equivalent to a `docx` file created by oxml_xxe 
+An equivalent to a `docx` file created by `oxml_xxe`
 ```
-./docem.py -s samples/xxe/docx_sample_oxml_xxe_mod0/ -pm xss -pf payloads/xxe_special_6.txt -pt per_document -kt -sx docx
+./docem.py -s samples/xxe/docx_sample_oxml_xxe_mod0/ -pt xss -pt payloads/xxe_special_6.txt -pm per_document -kt -sx docx
 ```
 
 
