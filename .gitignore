@@ -1,2 +1,5 @@
 tmp/*
 tmp*
+.venv
+venv
+jaunch.json

@@ -5,416 +5,403 @@ import shutil
 import json
 import uuid
 import argparse
-# To create random refernces to XXE
-import string 
-import random
-# To work with XXE payloads
 import json
-import time
-
-from lxml import etree, objectify
-
-def make_tmp_clean_again(paths, mode):
-
-	if mode ==  'original':
-		if os.path.exists(paths['path_to_unzipped_folder_original']):
-			shutil.rmtree(paths['path_to_unzipped_folder_original'])
-
-		if os.path.exists(paths['path_to_copied_file']):
-			os.remove(paths['path_to_copied_file'])
-
-	elif mode == 'copy':
-
-		if os.path.exists(paths['path_to_unzipped_folder_modified']):
-			shutil.rmtree(paths['path_to_unzipped_folder_modified'])
-
-		if os.path.exists(paths['path_to_modified_file']):
-			os.remove(paths['path_to_modified_file'])
-
-# STEP 0
-def document_prepare_initial_paths(path_to_file):
-
-	path_to_script =  os.path.dirname(os.path.relpath(__file__))
-	path_to_tmp = path_to_script + '/tmp/'
-
-	# That hack needed because I switched from full paths
-	# to relevant; but I still want to have ability to use full paths
-	# What it does is: if path_to_script = '' than we need to remove first
-	# slash fro path_to_tmp 
-	# but it might break something
-	if path_to_tmp.find('tmp') == 1: path_to_tmp = 'tmp/'
-
-	# Determine whether supplied path is a path to dir
-	sample_type_is_folder = os.path.isdir(path_to_file)
-
-	if sample_type_is_folder:
-
-		# Check that sample_type is set
-		# (Very dumb place for a check)
-		if not args.sample_extension and sample_type_is_folder:
-			print('\nError: You have to specify sample_type (example: -sx docx) when using sample from directory')
-			exit()
-
-		# If path was set as 'samples/xxe/sample_oxml_xxe_mod1/'
-		if len(path_to_file) - 1 == path_to_file.rfind('/'):
-			path_to_file = path_to_file[:-1]
-		# If path was set as 'samples/xxe/sample_oxml_xxe_mod1' 
-		# do nothing
-		# samples/xxe/sample_oxml_xxe_mod1 - is our format
-
-		original_file_name = path_to_file.split('/')[-1]
-		original_file_ext = args.sample_extension
-
-		path_to_copied_file = ''
-
-	else:
-
-		# Create separate variables for an original file
-		original_file_name = path_to_file.split('/')[-1].split('.')[0]
-		original_file_ext = path_to_file.split('/')[-1].split('.')[1]
-
-		# create variables for a copied files
-		path_to_copied_file = path_to_tmp + original_file_name + '.zip'
-
-	# create variables for an unzipped files
-	unzipped_file_name = original_file_name + '_' + original_file_ext
-	path_to_unzipped_folder_original = path_to_tmp + unzipped_file_name + '/'
+import copy
+import re
 
 
-	paths_and_names = {
-		"path_to_script" : path_to_script,
-		"path_to_tmp" : path_to_tmp,
-		"path_to_orignal_file" : path_to_file,
-		"path_to_copied_file" : path_to_copied_file,
-		"path_to_unzipped_folder_original" : path_to_unzipped_folder_original,
-		"path_to_unzipped_folder_modified" : path_to_unzipped_folder_original,
-		"original_file_name" : original_file_name,
-		"original_file_ext" : original_file_ext,
-		"unzipped_file_name" : unzipped_file_name,
-		"modified_file_name" : original_file_name,
-		"path_to_modified_file" : '',
-		"sample_type_is_folder" : sample_type_is_folder
-	}
-	#print(paths_and_names)
-	return(paths_and_names)
+"""
+Class that contains the list of payloads
+"""
+class Payloads:
+	list = []
 
-# Prepare path where document will be unzipped
-def docuemnt_prepare_future_paths(paths, payload_type, payload_key, single_place='', offset=''):
-
-
-	if payload_type == 'per_place':
-		#postfix = '%s+%s'%(payload_type, payload) 
-		postfix = '%s-%s-%s-%s'%(payload_type, single_place, payload_key, offset) 
-
-	elif payload_type == 'per_file':
-		#postfix = '%s-%s'%(payload_type, payload) 
-		postfix = '%s-%s-%s'%(payload_type, single_place, payload_key) 
-
-	elif payload_type == 'per_document':
-		postfix = '%s-%s'%(payload_type, payload_key) 
-
-
-	postfix += '_' + str(time.time()).replace('.','') 
-
-	paths['modified_file_name'] = paths['original_file_name'] + '-' + postfix 
-	paths['path_to_unzipped_folder_modified'] = paths['path_to_tmp'] + paths['modified_file_name'] + '/'
-	paths['path_to_modified_file'] = paths['path_to_tmp'] + paths['modified_file_name'] + '.zip'
-	paths['path_to_packetd_file'] = paths['path_to_tmp'] +  paths['modified_file_name'] + '.' +  paths['original_file_ext']
-
-	# For debug	
-	#print('postfix',postfix)
-	#print("paths['original_file_name']",paths['original_file_name'])
-	#print("paths['modified_file_name']", paths['modified_file_name'])
-	#print("paths['path_to_unzipped_folder_modified']",paths['path_to_unzipped_folder_modified'])
-
-
-
-# copy, rename and unzip
-def document_unpack(paths):
-
-	# If sample is a folder
-	if paths['sample_type_is_folder']:
-		shutil.copytree(paths["path_to_orignal_file"],paths["path_to_unzipped_folder_original"])
-
-	# If sample is a .docx or smth
-	else:
-		# copy original file into script_script/dir and rename extension to .zip
-		shutil.copy(paths["path_to_orignal_file"],paths["path_to_copied_file"])
-		# unzip renamed file into direc
-		shutil.unpack_archive(paths["path_to_copied_file"],paths["path_to_unzipped_folder_original"])
-		# debug
-		#print(paths["path_to_unzipped_folder_original"])
+	def _readfile(self, path_to_file: str) -> list:
+		if os.path.exists(path_to_file):
+			with open(path_to_file, 'r') as file:
+				file_as_array = file.read().splitlines()
+		else:
+			raise Exception
+		
+		return(file_as_array)
 		
 
-def document_tree_generate(paths, opt=1):
-	files_inside_unpacked_dir = {}
-	for root, dirs, files in os.walk(paths["path_to_unzipped_folder_original"], topdown = False):
-		for full_name in files:
-			#print(os.path.join(root, name))
+	def __init__(self, path_to_file: str, ptype: str): 
+		lines = self._readfile(path_to_file)
+		for l in lines:
+			if ptype == 'xxe':
+				try:
+					p = json.loads(l)
+				except Exception as e:
+					print(f'\n! Error: {e}')
+					print(f'\nLooks like payload file is not properly formatted')
+					print(f'Please check that you are using apropriate payload_type with appropriate payload format:\n\t-pt xss means that list of payloads is just a list;\n\t-pt xxe means that payload file is a list of dictionaries;\n')
+					raise
+			elif ptype == 'xss':
+				p = {'reference':l}  
+			self.list.append(p)
 
-			path_to_file = os.path.join(root, full_name)
-			path_in_tmp = path_to_file.replace(paths["path_to_unzipped_folder_original"],'')
+"""
+Class that contains the provided sample
+which will be used for the injection
+"""
+class Sample:
+	# Path to a main sample file or dir
+	sample_path = ''
+	is_sample_folder = None
 
-			# Remove extension from file
-			full_name_extension_offset = full_name.rfind('.')
-			if full_name_extension_offset != -1:
-				name_without_extension = full_name[:full_name.rfind('.')].replace('.','_')
+
+	# embed_files - a dictionary that stores a list
+	# of files that contain magic_symbols
+	# key - path to a file
+	# value - array of indices where magic_symbols are present
+	# embed_files = {
+	# 	'app.xml':[1,32,423],
+	# 	'core/file.xml':[32,423],
+	# 	'ref/new/test.xml':[5],
+	# }
+	# To Do change it to a struct
+	embed_files = {}
+	embed_count_places = 0
+
+	"""
+	Mostly prepares a bunch of paths
+	that will be used throughout the programm
+	"""
+	def __init__(self, sample_path: str) -> None:
+		self.sample_path = sample_path
+
+		# Creates tmp in the current folder
+		self.tmp_folder_path = f'{os.path.dirname(__file__)}/tmp/'
+		self._create_tmp()
+
+		self.is_sample_folder = os.path.isdir(self.sample_path)
+		self.sample_file_name = ''
+
+		if self.is_sample_folder:
+			# If path was set as 'samples/xxe/sample_oxml_xxe_mod1/'
+			if len(self.sample_path) - 1 == self.sample_path.rfind('/'):
+				self.sample_path = self.sample_path[:-1]
+
+			self.sample_file_name = self.sample_path.split('/')[-1]
+			self.sample_file_ext = args.sample_extension
+			
+			self.copied_file_path = ''
+
+		else:
+			# Create separate variables for an original file
+			self.sample_file_name = self.sample_path.split('/')[-1].split('.')[0]
+			self.sample_file_ext = self.sample_path.split('/')[-1].split('.')[1]
+
+			self.copied_file_path = f'{self.tmp_folder_path}{self.sample_file_name}.zip'
+		
+		# create variables for unzipped files
+		self.unzipped_folder_path = f'{self.tmp_folder_path}{self.sample_file_name}_{self.sample_file_ext}/'
+		
+
+
+	# Creates tmp folder if it does not exist
+	def _create_tmp(self) -> None:
+		if not os.path.exists(self.tmp_folder_path):
+			os.mkdir(self.tmp_folder_path)
+
+	def _delete_folder(self, folder_path: str, keep_folder: bool = False) -> None:
+		if os.path.exists(folder_path):
+			shutil.rmtree(folder_path)
+
+			if keep_folder:
+				os.mkdir(folder_path)
+
+
+
+	"""
+	Copy sample file/folder to the tmp location
+	If a sample is a file - zip extract
+	"""
+	def unpack(self):
+		# Sample is a folder
+		if self.is_sample_folder:
+			self._copy_folder(
+				src = self.sample_path,
+				dst = self.unzipped_folder_path
+			)
+		# Sample is a file
+		else:
+			self._copy_file(
+				src = self.sample_path,
+			    dst = self.copied_file_path
+			)
+			shutil.unpack_archive(
+				filename = self.copied_file_path, 
+				extract_dir = self.unzipped_folder_path)
+		
+	"""
+	Copy file from src to dst
+	"""
+	def _copy_file(self, src: str, dst: str) -> None:
+		shutil.copy(src = src, dst = dst)
+		
+	"""
+	Copy file from src to dst
+	"""
+	def _copy_folder(self, src: str, dst:str) -> None:
+		shutil.copytree(src = src, dst = dst)				
+	
+	"""
+	Finds all places where payloads will be embedded.
+	Saves them in a class variable.
+	Variable is a list of dicts that contain 
+		path - path to a file
+		places - indexes in a file where to embed
+		counts - total number of 
+	payload will be embedded
+	"""
+	def find_embedding_points(self) -> None:
+		print('Searching for magic_symbols in a sampled file/dir')
+		for root, dirs, files in os.walk(
+			self.unzipped_folder_path, topdown = False):		
+			for file in files:
+				if file.endswith(magic_file_extensions): 
+					file_fullpath = f'{root}/{file}'
+					with open(file_fullpath, 'r') as f:
+						file_in_sample = f.read()
+
+						if file_in_sample.count(magic_symbol):
+							# to_embed = {
+							# 	'filepath' : file_fullpath,
+							# 	'places' : [i for i in range(len(file_in_sample)) if file_in_sample.startswith(magic_symbol, i)],
+							# 	# 'content' : file_in_sample
+							# 	}
+							# Add a file and a list of indices with magic symbols to the list
+							places = [i for i in range(len(file_in_sample)) if file_in_sample.startswith(magic_symbol, i)]
+							file_path = file_fullpath.replace(self.unzipped_folder_path,'')
+							self.embed_files[file_path] = places
+							
+							self.embed_count_places += len(places)
+							print(f'{len(places)} symbols in {file_path}')
+		print()
+
+	"""
+	Print a message to a user about a number
+	of files that would be created
+	"""
+	def ask_to_confirm_docs_creation(self, pmod, payloads):
+		print(f'{len(self.embed_files)} potential files to embed')
+		print(f'{self.embed_count_places} potential places to embed (as a sum of number of symbols)')
+
+		modifier = 0
+		if pmod == 'per_document':
+			modifier = 1
+		elif pmod == 'per_file':
+			modifier = len(self.embed_files)
+		elif pmod == 'per_place':
+			modifier = self.embed_count_places
+
+		num_of_files= len(payloads) * modifier
+
+		print(f'modifier = {modifier}. Based on selected -pm {pmod}')
+		print(f'\nFiles to be created = number_of_payloads * modifier = {len(payloads)} * {modifier} = {num_of_files}')
+
+		# For debug
+		# To be sure that you want to create that amount of documents
+		answer = input('\nContinue?(y/n): ')
+		if answer == 'n':
+			self._delete_folder(self.tmp_folder_path)
+			exit()
+
+
+	"""
+	Inject payload header for XXE payloads
+	for XSS payloads - do nothing
+	"""
+	def _inject_header(self, ptype:str, payload: dict, file_content: str) -> str:
+		if ptype == 'xxe':
+			# Ending with finding where to place  
+			# payload with <DOCTYPE>
+			
+			offset_xml_start = file_content.find('<?xml')
+			if offset_xml_start != -1:
+				file_content = file_content[:offset_xml_start] +  payload['vector'] + file_content[offset_xml_start:]
+
+		else:
+			pass
+
+		return file_content
+
+	"""
+	Archive the specified folder (full path)
+	to the speecified file (full path)
+	"""
+	def _archive_folder(self, src_folder_path: str, dst_archive_path: str) -> None:
+		# Shutil adds .zip 
+		# To avoid .zip.zip we strip it
+		if dst_archive_path.endswith('.zip'):
+			index = dst_archive_path.rfind('.zip')
+			dst_archive_path = dst_archive_path[:index]
+
+		shutil.make_archive(
+			base_name = dst_archive_path,
+			root_dir = src_folder_path,
+			format='zip'
+		)
+
+
+		
+	def _rename_object(self, src: str, dst: str) -> None:
+		os.rename(src=src, dst=dst)
+		
+
+	"""
+	Prepare paths for a new file that
+	will have specif injection
+	pmode: payload_mode
+	ptype: payload_type
+	pfile: payload file - used for pmode = per_file
+	pplace: payload file - used for pmode = per_file / per_place
+	"""
+	def __prepare_paths_for_injected_file(self, suffix_run:str,  pmode:str, ptype:str, pfile: str = '', pplace: int = None) -> None:
+		if pfile or pplace:
+			pfile = pfile[pfile.rfind('/') + 1:].replace('.','_')
+			pfile = re.sub('[\[\]]','',pfile)
+			if pplace:
+				final_file_name_core = f'{self.sample_file_name}-{pmode}_{ptype}_{suffix_run}_{pfile}_{pplace}'
 			else:
-				name_without_extension = full_name
+				final_file_name_core = f'{self.sample_file_name}-{pmode}_{ptype}_{suffix_run}_{pfile}'
+		else:
+			final_file_name_core = f'{self.sample_file_name}-{pmode}_{ptype}_{suffix_run}'
+		
 
-			#full_name = full_name.replace('.','_')
-			#print('\nfull_name',full_name)
-			# Construct future key_name for an array of files inside a document
-			key_name = '%s_%s'%(root, name_without_extension)
-			# Remove path to a docuemnt and strip '_' symbol for those docuemnts that lies in a root of a docuemnt 
-			#print('key_name',key_name)
-			#print('key_name',key_name.replace(paths["path_to_unzipped_folder_original"],''))
-			#key_name = key_name.replace(paths["path_to_unzipped_folder_original"],'').lstrip('_')
-			key_name = key_name.replace(paths["path_to_unzipped_folder_original"],'')
-			#print('key_name',key_name)
+		self.final_file_folder = f'{self.tmp_folder_path}{final_file_name_core}/'
+		self.final_file_packed_zip = f'{self.tmp_folder_path}{final_file_name_core}.zip'
+		self.final_file_packed_ext = f'{self.tmp_folder_path}{final_file_name_core}.{self.sample_file_ext}'
 
-			files_inside_unpacked_dir[key_name] = {'path': path_to_file, 'path_in_tmp': path_in_tmp}
+	"""
+	Create new folder for specific injection
+	"""
+	def _copy_before_injection(self):
+		self._copy_folder(
+			src = self.unzipped_folder_path, 
+			dst = self.final_file_folder)
 
-	return(files_inside_unpacked_dir)
+	"""
+	Archive and rename previously created
+	new folder for specific injection
+	"""
+	def _pack_after_injection(self):
+		self._archive_folder(
+			src_folder_path = self.final_file_folder,
+			dst_archive_path = self.final_file_packed_zip
+		)
+		self._rename_object(
+			src = self.final_file_packed_zip,
+			dst = self.final_file_packed_ext
+		)
+
+		self._delete_folder(self.final_file_folder)
+
+		print(f'File with payload created: {self.final_file_packed_ext.replace(self.tmp_folder_path,"tmp/")}')
 
 
-# Add tmp paths of copied unzipped tmp document
-# to tree_embedding
-def document_tree_embedding_append_mod_paths(paths, tree_embedding):
-
-	n = 'document_tree_embedding_append'
+	"""
+	For the specified directory remove magic_symbols
+	from all of the nested files
+	"""
+	def _remove_magic_symbols(self, base_folder:str, list_of_relative_paths: dict) -> None:
+		for file in list_of_relative_paths:
+			file_fp = base_folder + file
+			with open(file_fp, 'r') as f:
+				file_content = f.read()	
+				file_content= file_content.replace(magic_symbol, '')
+			with open(file_fp, 'w') as f:
+				f.write(file_content)
 	
-	#print(n,'path_to_modified_file', paths['path_to_modified_file'])
-	#print(n,'path_to_unzipped_folder_modified', paths['path_to_unzipped_folder_modified'])
+	def _convert_tmp_folder_path_to_specific_payload_path(self, path: str) -> str:
+		return(path.replace(self.unzipped_folder_path, self.final_file_folder))
+		
+	def __test_unzip_and_verify(self, path):
+		
+		pass
 
-	for file_to_embed in tree_embedding.keys():
-		tree_embedding[file_to_embed]['tmp_mod_path'] = paths['path_to_unzipped_folder_modified'] + tree_embedding[file_to_embed]['path_in_tmp']
-		#print(tree_embedding[file_to_embed]['tmp_mod_path'])
+	"""
+	Injects single payload to all places from embed_tree
+	pm - payload mode
+	pt - payload type
+	"""
+	def inject_payload(self, payload: dict, pmode: str, ptype: str) -> None:
+		suffix_run = uuid.uuid4().hex[:5]
 
+		if pmode == 'per_document':
+			# Replace all magic symbols in all files
+			# where there were found
+			# and pack the result
+			self.__prepare_paths_for_injected_file(suffix_run=suffix_run, pmode=pmode, ptype=ptype)
+			self._copy_before_injection()
 
-# Meta function 
-# for all possbile embeddings
-def document_embed_payloads(payload_mode,payload_type,single_file_dict, payload_single, magic_symbol,offset_in_single_file = 0):
+			for embed_f_path in self.embed_files:
+				embed_f_path = self.final_file_folder + embed_f_path
+				with open(embed_f_path, 'r') as file_to_inj:
+					file_to_inj_content = file_to_inj.read()
+					file_to_inj_content = file_to_inj_content.replace(magic_symbol, payload['reference'])
+					file_to_inj_content = self._inject_header(ptype, payload, file_to_inj_content)
+				with open(embed_f_path, 'w') as file_to_inj:
+					file_to_inj.write(file_to_inj_content)
+			self._pack_after_injection()
 
+		elif pmode == 'per_file':
+			# Replace all magic symbols in each file
+			# where there were found
+			# and pack individual results with substitued files
+			for embed_f_path in self.embed_files:
+				self.__prepare_paths_for_injected_file(suffix_run=suffix_run, pmode=pmode, ptype=ptype, pfile=embed_f_path)
+				self._copy_before_injection()
 
-	# payload_mode
-	# payload_type
-	# tree_embedding[single_file_key] = single_file_dict 
-	# 	tree_embedding[single_file_key]['tmp_mod_path']
-	# 	tree_embedding[single_file_key]['content']
-	# magic_symbol
-	# payloads[single_payload_key] = payload_single
-	# offset_in_single_file = offset_in_single_file
-
-
-	if payload_mode == 'xss':
-		with open(single_file_dict['tmp_mod_path'],'w') as single_file:
-	
-			if payload_type == 'per_document' or payload_type == 'per_file':
-
-				single_file_mod = single_file_dict['content'].replace(magic_symbol, payload_single)
-
-			elif payload_type == 'per_place':
-
-				single_file_mod = single_file_dict['content'][:offset_in_single_file] 
-
-				single_file_mod += payload_single + single_file_dict['content'][offset_in_single_file+1:] 
+				embed_f_fp = self.final_file_folder + embed_f_path
+				with open(embed_f_fp, 'r') as file_to_inj:
+					file_to_inj_content =  file_to_inj.read()
+					file_to_inj_content = file_to_inj_content.replace(magic_symbol, payload['reference'])
+					file_to_inj_content = self._inject_header(ptype, payload, file_to_inj_content)
+				with open(embed_f_fp, 'w') as file_to_inj:
+					file_to_inj.write(file_to_inj_content)
 				
+				files_with_magic_symbols_to_remove = copy.deepcopy(self.embed_files)
+				files_with_magic_symbols_to_remove.pop(embed_f_path)
+				self._remove_magic_symbols(
+					base_folder = self.final_file_folder,
+					list_of_relative_paths = files_with_magic_symbols_to_remove)
 
-				# Clear other places in a file
-				single_file_mod = single_file_mod.replace(magic_symbol,'')
+				self._pack_after_injection()
+				
+		elif pmode == 'per_place':
+			# Replace each magic symbol in each file
+			# where there were found
+			# and pack individual result with substitued index
+			for embed_f_path, embed_f_indices in self.embed_files.items():
+				for index in embed_f_indices:
 
-			single_file.write(single_file_mod)
-			single_file.close()
+					self.__prepare_paths_for_injected_file(suffix_run=suffix_run, pmode=pmode, ptype=ptype, pfile=embed_f_path, pplace=index)
+					self._copy_before_injection()
+					embed_f_fp = self.final_file_folder + embed_f_path
 
+					with open(embed_f_fp, 'r') as file_to_inj:
+						file_to_inj_content = file_to_inj.read()
+						file_to_inj_content = file_to_inj_content[:index] + payload['reference'] + file_to_inj_content[index + len(magic_symbol):]
+						file_to_inj_content = file_to_inj_content.replace(magic_symbol,'')
+						file_to_inj_content = self._inject_header(ptype, payload, file_to_inj_content)
+					with open(embed_f_fp, 'w') as file_to_inj:
+						file_to_inj.write(file_to_inj_content)
+					
+					# We don't do deep copy here, because the current file
+					# still contains other occurences of magic_symbol
+					self._remove_magic_symbols(
+						base_folder = self.final_file_folder,
+						list_of_relative_paths = self.embed_files)
+				
+					self._pack_after_injection()
+						
 
-	elif payload_mode == 'xxe':
-		with open(single_file_dict['tmp_mod_path'],'w') as single_file:
-
-			# Loading one payload to dict from string
-			xxe_current_payload_dict = json.loads(payload_single)
-
-			# If there is a reference
-			# then substitute all magic symblos with references 
-			if xxe_current_payload_dict['reference']:
-
-				if payload_type == 'per_document' or payload_type == 'per_file':
-
-					single_file_mod = single_file_dict['content'].replace(magic_symbol, xxe_current_payload_dict['reference'])
-
-				elif payload_type == 'per_place': 
-
-					single_file_mod = single_file_dict['content'][:offset_in_single_file] 
-					single_file_mod += xxe_current_payload_dict['reference'] + single_file_dict['content'][offset_in_single_file+1:] 
-
-					# Clear other places in a file
-					single_file_mod = single_file_mod.replace(magic_symbol,'')	
-
-
-			# If there is no reference
-			# then delete all magic symblos
-			else:
-				single_file_mod = single_file_dict['content'].replace(magic_symbol,'')
-
-
-			# Ending with finding where to place 
-			# payload with <DOCTYPE and stuf>
-			offset_xml_start = int(single_file_dict['content'].find('<?xml'))
-			# find where the tag closes
-			offset_xml_place_closed_bracket = single_file_dict['content'].find('>',offset_xml_start) + 1 
-
-			single_file_mod = single_file_mod[:offset_xml_place_closed_bracket] + xxe_current_payload_dict['vector'] + single_file_mod[offset_xml_place_closed_bracket:]
-
-
-			single_file.write(single_file_mod)
-			single_file.close()
-
-# STEP 4
-# zip into archive and rename
-def document_pack(paths):
-
-	# Split - because shutil will add .zip anyway
-	#print(paths['path_to_unzipped_folder_modified'])
-	shutil.make_archive(base_name=paths['path_to_modified_file'].split('.')[0],root_dir=paths['path_to_unzipped_folder_modified'],format='zip')
-
-	# For debug
-	#print('\n%s'%paths['path_to_modified_file'])
-	#print(paths['path_to_packetd_file'])
-
-	# copy & rename zip to odt
-	shutil.copy(paths['path_to_modified_file'], paths['path_to_packetd_file'])
-
-	
-def document_copy_dir(paths):
-
-	shutil.copytree(paths['path_to_unzipped_folder_original'], paths['path_to_unzipped_folder_modified'])
-
-
-# 
-# tree embeding structure
-# { 
-# 	'file1':{
-# 		'tmp_mod_path':'',
-# 		'places':[], 
-# 		'path':'',
-# 		'content':'',
-# 		'path_in_tmp':'',
-# 		'count':''
-# 	},
-# 	'file2':{
-
-# 	},
-# 	'file3':{
-
-# 	},
-# 	etc.
-# }
-def document_tree_embedding_points(paths, tree, magic_symbol):
-
-	print('\n======== Count magic symbols ========')
-
-	count_places = 0
-	
-	embedding = []
-	tree_embedding = {}
-
-	embedding_info = {}
-	# For every document in a tree
-	for file_key_name in tree.keys():
-		# Read file and find all places 
-		file_in_sample_path = tree[file_key_name]['path']
-
-		#print(file_in_sample_path)
-		if file_in_sample_path.endswith(('.xml','.txt','.rels','.vml')):
-			with open(file_in_sample_path, 'r') as file_in_sample:
-				file_in_sample_read = file_in_sample.read()
-				file_in_sample.close()
-
-				embedding_count = file_in_sample_read.count(magic_symbol)
-
-				#tree_embedding will be consist only with those files does have magic symbols
-				if embedding_count != 0:
-
-					tree_embedding[file_key_name] = dict(tree[file_key_name])
-					tree_embedding[file_key_name]['count'] =  embedding_count
-					tree_embedding[file_key_name]['places'] = [index for index in range(len(file_in_sample_read)) if file_in_sample_read.startswith(magic_symbol, index)]	
-					tree_embedding[file_key_name]['content'] = file_in_sample_read
-
-					count_places += len(tree_embedding[file_key_name]['places'])
-				print('\t%d\tsymbols in %s'%(embedding_count,file_key_name))
-
-
-	embedding_info['num_of_files_to_embed'] = len(tree_embedding)
-	embedding_info['num_of_places_to_embed'] = count_places
-
-	#print('\n\t%d\ttotal files to embed' % len(tree_embedding))
-	#print('\t%d\ttotal places to embed' % count_places)
-	return(tree_embedding,embedding_info)
-
-def payloads_read_file(path_to_payloads):
-
-	payloads = {}
-
-	with open(path_to_payloads, 'r') as payload_vectors_file:
-		payload_vectors_file_read = payload_vectors_file.read().splitlines()
-
-	payloads_number = len(payload_vectors_file_read)
-	for p in range(payloads_number):
-		payloads['payload_%d' % p] = payload_vectors_file_read[p]
-
-	return(payloads)
-
-def make_embedding_tree_clear_again(tree_embedding, current_file_key):
-
-	to_clear_files = dict(tree_embedding)
-	del(to_clear_files[current_file_key])
-
-	# for debug
-	#print(tree_embedding.keys())
-	#print(to_clear_files.keys())
-	
-	for to_clear_file_key in to_clear_files.keys():
-		cleared_file_content = to_clear_files[to_clear_file_key]['content'].replace(magic_symbol,'')
-
-		with open(to_clear_files[to_clear_file_key]['tmp_mod_path'],'w') as cleared_file:
-			cleared_file.write(cleared_file_content)
-			cleared_file.close()
-
-def interface_ask_user(embedding_info,paths):
-
-	# embedding_info['num_of_files_to_embed'] = len(tree_embedding)
-	# embedding_info['num_of_places_to_embed'] = len(tree_embedding)
-
-	print('\n\t%d\ttotal files to embed (used as modifier with -pt per_file)' % embedding_info['num_of_files_to_embed'])
-	print('\t%d\tplaces in a doc file to embed (used as modifier with -pt per_place)' % embedding_info['num_of_places_to_embed'])
-
-	num_of_payloads = embedding_info['num_of_payloads']
-
-	# modifier depends on payload_type (-pt)
-	modifier = 1	
-
-	if embedding_info['payload_type'] == 'per_file':
-		modifier = embedding_info['num_of_files_to_embed']
-
-	elif embedding_info['payload_type'] == 'per_place':
-		modifier = embedding_info['num_of_places_to_embed']
-
-	num_of_files_result = num_of_payloads * modifier
-
-	print('\nnum_of_payloads * modifier = %d * %d = %d'%(num_of_payloads,modifier,num_of_files_result))
-	print('modifier depends on payload_type (-pt)')
-	print('\nFiles to be created %d' % num_of_files_result)
-
-	# To be sure that you want to create that amount of documents
-	answer = input('Continue?(y/n): ')
-	
-	if answer == 'n':
-		make_tmp_clean_again(paths,'original')
-		exit()
-
-
-def interface_print_logo():
-	logo = '''
+class Interface:
+	def print_logo(self):
+		logo = '''
 
 _|_|_|                                                  
 _|    _|    _|_|      _|_|_|    _|_|    _|_|_|  _|_|    
@@ -423,185 +410,101 @@ _|    _|  _|    _|  _|        _|        _|    _|    _|
 _|_|_|      _|_|      _|_|_|    _|_|_|  _|    _|    _|  
                                                                                                         
 	'''
-	version = '1.3'
-	print(logo)
-	print('Current version: %s\n'%version)
+		version = '1.5'
+		print(logo)
+		print('Current version: %s\n'%version)
 
-def interface_print_example():
-	examples = 	[
-		'./docem.py -s samples/xxe/docx_sample_oxml_xxe_mod0/ -pm xss -pf payloads/xxe_special_6.txt -pt per_document -kt -sx docx',
-		'./docem.py -s samples/xxe/docx_sample_oxml_xxe_mod1/ -pm xss -pf payloads/xxe_special_1.txt -pt per_file -kt -sx docx',
-		'./docem.py -s samples/xxe/sample_oxml_xxe_mod1.docx -pm xxe -pf payloads/xxe_special_2.txt -kt -pt per_place',
-		'./docem.py -s samples/xss_sample_0.odt -pm xss -pf payloads/xss_tiny.txt -pm per_place'
-	]
-	
-	print('Examples:\n%s\n' % '\n'.join(e for e in examples))
+	def print_examples(self):
+		examples = 	[
+			'./docem.py -s samples/marked/docx_sample_oxml_xxe_mod0/ -pt xxe -pf payloads/xxe_special_6.txt -pm per_document -sx docx',
+			'./docem.py -s samples/marked/docx_sample_oxml_xxe_mod1/ -pt xxe -pf payloads/xxe_special_1.txt -pm per_file -sx docx',
+			'./docem.py -s samples/marked/sample_oxml_xxe_mod1.docx -pt xxe -pf payloads/xxe_special_2.txt -pm per_place',
+			'./docem.py -s samples/marked/docx_sample_oxml_xxe_mod0/ -pt xss -pf payloads/xss_tiny.txt -pm per_place -sx docx'
+		]
+		
+		print('Examples:\n%s\n' % '\n'.join(e for e in examples))
+		
 
 if __name__ == '__main__':
+	interface = Interface()
+	interface.print_logo()
+	interface.print_examples()
 
-	interface_print_logo()
-	interface_print_example()
-
-	# Working with arguments
-	parser = argparse.ArgumentParser(description='Create docx,odt,pptx,etc files with XXE/XSS payloads')
+	parser = argparse.ArgumentParser(
+		description='Create docx, odt, pptx files with XXE/XSS payloads')
 	
 	optional = parser._action_groups.pop()
 	required = parser.add_argument_group('required arguments')
 	
-	required.add_argument('-s', dest='sample', type=str, help='path to sample file')
-	required.add_argument('-pm', dest='payload_mode',type=str,choices=['xss','xxe'],help='payload mode: embedding XXE or XSS in a file')
-
-	#optional.add_argument('-xu', dest='xxe_uri', type=str, help='URI to use in XXE payload - file as \'file:///etc/lsb-release\' or url as \'http://example.com\'')
-	optional.add_argument('-kt', dest='keep_tmp', action='store_true', help='do not delete unpacked and modified folders')
-	optional.add_argument('-pt', dest='payload_type', type=str, help='how many payloads will be in one file. per_document is default',choices=['per_place','per_file','per_document'],default='per_document')
-	#optional.add_argument('-st', dest='sample_type', type=str, help='d ',choices=['doc','folder'],default='doc')
-	optional.add_argument('-sx', dest='sample_extension', type=str, help='d ')
-	optional.add_argument('-pf', dest='payload_file',type=str, help='path to a file with payloads to embed',default='payloads/no_payload.txt')
+	required.add_argument('-s', 
+							dest='sample', 
+							type=str, 
+							help='path to sample file')
+	required.add_argument('-pt', 
+							dest='payload_type',
+							type=str,choices=['xss','xxe'],
+							help='payload type: embedding XXE or XSS in a file')
+	optional.add_argument('-pm',
+							dest='payload_mode',
+							type=str,
+							help='how many payloads will be in one file. per_document is default', 
+							choices=['per_place','per_file','per_document'],
+							default='per_document')
+	optional.add_argument('-sx', 
+						dest='sample_extension', 
+						type=str, help='d ')
+	optional.add_argument('-pf', 
+						dest='payload_file',
+						type=str, help='path to a file with payloads to embed',
+						default='payloads/no_payload.txt')
 
 	parser._action_groups.append(optional)
 	args = parser.parse_args()	
 
 	# Symbol that is used to determine a place where to place payload
 	magic_symbol = 'XXCb8bBA9XX'
-
-	path_to_complex_file = args.sample
+	magic_file_extensions = ('.xml','.txt','.rels','.vml')
 	
 	if args.sample:
+		if not os.path.exists(args.sample):		
+			print(f'Error: Sample file does not exist: {args.sample}')
+		elif not os.path.exists(args.payload_file):
+			print(f'Error: Payload file does not exist: {args.payload_file}')
+		else:
+			print(f'Document Embed XSS & XXE tool')
+			print(f'Current magic_symbol: {magic_symbol}')
 
-		if os.path.exists(args.sample) and os.path.exists(args.payload_file):
-			print('Document Embed XSS & XXE tool')
-			
-			print('\nCurrent magic_symbol: ',magic_symbol)
+			p = Payloads(
+				path_to_file = args.payload_file,
+				ptype = args.payload_type)
+			s = Sample(args.sample)
 
-			payloads = payloads_read_file(args.payload_file)
-
-			# Create dict with a lot of file paths that will be used 
-			# in future
-			paths = document_prepare_initial_paths(path_to_complex_file)
-			
-			# For dubug
-			#print('\npaths in the beginning\n',paths)
-
-			# Create tmp directory if it is not exists
-			if not os.path.exists(paths["path_to_tmp"]):
-				os.mkdir(paths["path_to_tmp"])
+			# only for debug
+			# s._delete_folder(s.tmp_folder_path, keep_folder=True)
 
 			print('\n=========== Current setup ===========')
-			print('sample file path:\t\t',args.sample)
-			print('sample is a directory:\t',paths['sample_type_is_folder'])
-			print('payload mode:\t\t',args.payload_mode)
-			print('payload file:\t\t',args.payload_file)
-			print('payload type:\t\t',args.payload_type)
-			print('number of payloads:\t',len(payloads))
-			print('keep unpacked files:\t',args.keep_tmp)
+			print('sample file path:\t', s.sample_path)
+			print('sample is a directory:\t', s.is_sample_folder)
+			print('payload mode:\t\t', args.payload_mode)
+			print('payload file:\t\t', args.payload_file)
+			print('payload type:\t\t', args.payload_type)
+			print('number of payloads:\t', len(p.list))
+			print()
 
-			document_unpack(paths)
-			tree = document_tree_generate(paths)
-			tree_embedding, embedding_info = document_tree_embedding_points(paths, tree, magic_symbol)
-			embedding_info['num_of_payloads'] = len(payloads)
-			embedding_info['payload_type'] = args.payload_type
+			s.unpack()
+			s.find_embedding_points()
+			s.ask_to_confirm_docs_creation(args.payload_mode, p.list)
+			for payload in p.list: 
+				s.inject_payload(
+					payload = payload,
+					pmode = args.payload_mode,
+					ptype = args.payload_type
+				)
 
-			#make_tmp_clean_again(paths,'original')
-			interface_ask_user(embedding_info,paths)
-
-			# Starting maing cycle
-			for single_payload_key in payloads.keys():
-
-				print('\n%s' % single_payload_key)
-
-				if args.payload_type == 'per_document':
+			s._delete_folder(s.unzipped_folder_path)
+			if not s.is_sample_folder:
+				os.remove(s.copied_file_path)
+				
 					
-					docuemnt_prepare_future_paths(paths, args.payload_type, single_payload_key)
-					document_tree_embedding_append_mod_paths(paths, tree_embedding)
-					document_copy_dir(paths)
-
-					
-					# For 'per_document' we are looking only
-					# for those documents that have embedded magic symbols
-					# and we do not need to clear anything
-					# because all magic symbols will be substituted
-					for single_file_key in tree_embedding:
-
-						document_embed_payloads(
-							payload_mode = args.payload_mode,
-							payload_type = args.payload_type,
-							single_file_dict = tree_embedding[single_file_key],
-							payload_single = payloads[single_payload_key],
-							magic_symbol = magic_symbol
-							)
-
-
-					document_pack(paths)
-
-					print('\tpacked to: %s' % paths['path_to_packetd_file'])
-
-					if not args.keep_tmp: 			
-						make_tmp_clean_again(paths,'copy')
-
-				elif args.payload_type == 'per_file':
-	
-					for single_file_key in tree_embedding:
-	
-						print('\t%s'%single_file_key)
-
-						docuemnt_prepare_future_paths(paths, args.payload_type, single_payload_key, single_file_key)
-						document_tree_embedding_append_mod_paths(paths, tree_embedding)						
-						document_copy_dir(paths)
-
-
-						document_embed_payloads(
-							payload_mode = args.payload_mode,
-							payload_type = args.payload_type,
-							single_file_dict = tree_embedding[single_file_key],
-							payload_single = payloads[single_payload_key],
-							magic_symbol = magic_symbol
-							)
-
-						make_embedding_tree_clear_again(tree_embedding, single_file_key)
-						document_pack(paths)
-						
-						print('\t\tpacked to: %s'%paths['path_to_packetd_file'])
-
-						if not args.keep_tmp:
-							make_tmp_clean_again(paths,'copy')
-
-				elif args.payload_type == 'per_place':
-
-					for single_file_key in tree_embedding:
-
-						print('\t%s'%single_file_key)
-					
-						for offset_in_single_file in tree_embedding[single_file_key]['places']:
-
-							docuemnt_prepare_future_paths(paths, args.payload_type, single_payload_key, single_file_key, offset_in_single_file)
-							document_tree_embedding_append_mod_paths(paths, tree_embedding)
-							document_copy_dir(paths)
-
-							#print('\n',tree_embedding[single_file_key]['path_in_tmp'])
-
-							document_embed_payloads(
-								payload_mode = args.payload_mode,
-								payload_type = args.payload_type,
-								single_file_dict = tree_embedding[single_file_key],
-								payload_single = payloads[single_payload_key],
-								magic_symbol = magic_symbol,
-								offset_in_single_file = offset_in_single_file
-							)
-
-							make_embedding_tree_clear_again(tree_embedding, single_file_key)
-							document_pack(paths)
-
-							print('\t\tpacked to: %s'%paths['path_to_packetd_file'])
-						
-							if not args.keep_tmp: 			
-								make_tmp_clean_again(paths,'copy')
-
-					if not args.keep_tmp: 			
-						make_tmp_clean_again(paths,'copy')
-
-			make_tmp_clean_again(paths,'original')
-					
-		else:
-			print("Error: One of specified files: '%s' or '%s' - does not exist"% (args.sample, args.payload_file))
 	else:
 		parser.print_help()

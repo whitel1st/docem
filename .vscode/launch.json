@@ -1,0 +1,24 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "-s","samples/marked/sample_oxml_xxe_mod1.docx",
+                "-pt","xss",
+                "-pf","payloads/xss_tiny.txt",
+                "-pm","per_document",
+                "-sx","docx"
+            ],
+            
+            "justMyCode": true
+        }
+    ]
+}
