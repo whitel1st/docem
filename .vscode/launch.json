@@ -11,10 +11,10 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": [
-                "-s","samples/xxe/docx_sample_oxml_xxe_mod1/",
+                "-s","samples/marked/sample_oxml_xxe_mod1.docx",
                 "-pt","xss",
                 "-pf","payloads/xss_tiny.txt",
-                "-pm","per_place",
+                "-pm","per_document",
                 "-sx","docx"
             ],
             

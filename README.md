@@ -6,7 +6,7 @@ _|    _|  _|    _|  _|        _|_|_|_|  _|    _|    _|
 _|    _|  _|    _|  _|        _|        _|    _|    _|  
 _|_|_|      _|_|      _|_|_|    _|_|_|  _|    _|    _|
 
-version 1.4
+version 1.5
 ```
 
 
@@ -19,7 +19,7 @@ This tool is a side-project of a colloborative research of document's internal s
 
 A lot of common document formats, such as doc,docx,odt,etc are just a zip files with a few xml files inside.
 
-![diag0](https://github.com/whitel1st/docem/blob/master/pics/diag0.png "diag0")
+![diag0](pics/diag0.png "diag0")
 
 So why don't we try to embed XXE payloads in them?  
 That was done in a great [research](http://oxmlxxe.github.io/reveal.js/slides.html#/) by Will Vandevanter (`_will_is`)
@@ -34,15 +34,15 @@ Also there are three different types of `payload_type` - every type determines h
 Every `payload_type` described in a section `Usage`.
 Here is a small scheme of how this works:
 
-![diag1](https://github.com/whitel1st/docem/blob/master/pics/diag1.png "diag1")
+![diag1](pics/diag1.png "diag1")
 
 Payload modes
 
-![diag2](https://github.com/whitel1st/docem/blob/master/pics/diag2.png "diag1")
+![diag2](pics/diag2.png "diag1")
 
 Programm interface
 
-![screenshot](https://github.com/whitel1st/docem/blob/master/pics/screenshot.png "screenshot")
+![screenshot](pics/screenshot.png "screenshot")
 
 
 ## Install 
@@ -69,22 +69,23 @@ python3 docem.py --help
 		- `per_file` - for every payload, for every file inside a document, for all places inside a file embed a payload and create a new document
 		- `per_place` - for every payload, for every place in every file, embed a payload and create a new doc
 	- `-pf` - payload file
-	- `-kt` - do not delete temp folders in a `tmp/` 
 	- `-sx ` - sample extension - used when sample is a directory
 	- `-h` - print help
 
 Examples 
 ```bash
-./docem.py -s samples/xxe/docx_sample_oxml_xxe_mod0/ -pt xxe -pf payloads/xxe_special_6.txt -pm per_document -kt -sx docx,
-./docem.py -s samples/xxe/docx_sample_oxml_xxe_mod1/ -pt xxe -pf payloads/xxe_special_1.txt -pm per_file -kt -sx docx,
-./docem.py -s samples/xxe/sample_oxml_xxe_mod1.docx -pt xxe -pf payloads/xxe_special_2.txt -kt -pm per_place,
-./docem.py -s samples/xss_sample_0.odt -pt xss -pf payloads/xss_tiny.txt -pm per_place
+./docem.py -s samples/marked/docx_sample_oxml_xxe_mod0/ -pt xxe -pf payloads/xxe_special_6.txt -pm per_document -sx docx
+./docem.py -s samples/marked/docx_sample_oxml_xxe_mod1/ -pt xxe -pf payloads/xxe_special_1.txt -pm per_file -sx docx
+./docem.py -s samples/marked/sample_oxml_xxe_mod1.docx -pt xxe -pf payloads/xxe_special_2.txt -pm per_place
+./docem.py -s samples/marked/docx_sample_oxml_xxe_mod0/ -pt xss -pf payloads/xss_tiny.txt -pm per_place -sx docx
 ```
 
-An equivalent to a `docx` file created by `oxml_xxe`
+An equivalent to a `docx` file created by `oxml_xxe`. The command bellow will create docx files with embedded XXE payloads.
+```bash
+./docem.py -s samples/marked/docx_sample_oxml_xxe_mod0/ -pt xss -pf payloads/xxe_special_6.txt -pm per_document -sx docx
 ```
-./docem.py -s samples/xxe/docx_sample_oxml_xxe_mod0/ -pt xss -pt payloads/xxe_special_6.txt -pm per_document -kt -sx docx
-```
+
+Tool output is saved under `./tmp/` folder
 
 
 ## How to create custom sample
@@ -93,41 +94,44 @@ An equivalent to a `docx` file created by `oxml_xxe`
 ### Via new folder sample
 
 
-1. Unzip your document `example.docx` to a folder `example/`
+1. Unzip your document `new_sample_from_folder.docx` to a folder `new_sample_from_folder/` or use already existing clear sample by coping it from `samples/clear/<sample_name>` to `samples/marked/new_sample_from_folder/`
 2. Add magic symbols - `XXCb8bBA9XX` (depicted as `፨` in illustrations of this readme) in places where you want payloads to be embedded
-3. Use new sample with the tool as `-s samples/example/ -sx docx`
+3. Use new sample with the tool as `-s samples/new_sample_from_folder/ -sx docx`
 
 
 ### Via new file sample
 
-1. Unzip your document `example.docx` to a folder `example/`
-2. Add magic symbols - `XXCb8bBA9XX` - (depicted as `፨` in illustrations of this readme) in places where you want payloads to be embedded
-3. Zip your new sample into `example_modified0.zip`
-4. Rename extension - `example_modified0.docx`
-5. Use new sample with the tool as `-s samples/example_modified0.docx`
+1. Add magic symbols (`XXCb8bBA9XX`) to various places in you custom document `new_sample.docx` 
+2. Use new sample as `-s new_sample.docx`
 
 
-## File with payloads format
+## Payload file formats used in the tool
 
-A small documentation to add your custom payloads
+### XSS payloads
+
+Format: TXT file that contains list strings. Example:
+```
+<svg/src=x/onerror=alert(1)>
+<xss onafterscriptexecute=alert(1)><script>1</script>
+```
 
 ### XXE payloads
 
-**Special format**
+Tools uses **Special format** for XXE payloads. If you want to add additional payloads, please use an example bellow as a reference.
 
-String from a file
+Format: TXT file that contains list dictionaries. Example
 
-`{"vector":"<!DOCTYPE docem [<!ENTITY xxe_canary_0 \"XXE_STRING\">]>","reference":"&xxe_canary_0;"}`
+
+```
+{"vector":"<!DOCTYPE docem [<!ENTITY xxe_canary_0 \"XXE_STRING\">]>","reference":"&xxe_canary_0;"}
+{"vector":"<!DOCTYPE docem [<!ELEMENT docem ANY ><!ENTITY xxe_canary_2 SYSTEM \"file:///etc/lsb-release\">]>","reference":"&xxe_canary_2;"}
+```
 
 - `vector` - required key word - script will be searching for it 
 - `<!DOCTYPE docem [<!ENTITY xxe_canary_0 \"XXE_STRING\">]>` - payload. Warning all double quotation marks `"` must be escaped with one backslash `\` => `\"`
 - `reference` - required key word - script will be searching for it 
 - `&xxe_canary_0;` - reference that will be add in all places with magic symbol 
 
-### XSS payloads
-
-No special format.
-Just a file with strings. As if you would use it in any other tool.
 
 ## Features and ToDo
 

@@ -41,16 +41,6 @@ class Payloads:
 				p = {'reference':l}  
 			self.list.append(p)
 
-class Payload:
-	
-	vector = ''
-	header = ''
-
-	def __init__(self, payload, vector) -> None:
-		self.payload = payload
-		self.vector = vector
-
-
 """
 Class that contains the provided sample
 which will be used for the injection
@@ -115,9 +105,13 @@ class Sample:
 		if not os.path.exists(self.tmp_folder_path):
 			os.mkdir(self.tmp_folder_path)
 
-	def _delete_folder(self, folder_path: str) -> None:
+	def _delete_folder(self, folder_path: str, keep_folder: bool = False) -> None:
 		if os.path.exists(folder_path):
 			shutil.rmtree(folder_path)
+
+			if keep_folder:
+				os.mkdir(folder_path)
+
 
 
 	"""
@@ -125,26 +119,33 @@ class Sample:
 	If a sample is a file - zip extract
 	"""
 	def unpack(self):
-		# Sample is a file
+		# Sample is a folder
 		if self.is_sample_folder:
 			self._copy_folder(
 				src = self.sample_path,
 				dst = self.unzipped_folder_path
 			)
-		# Sample is a folder
+		# Sample is a file
 		else:
-			shutil.copy(
+			self._copy_file(
 				src = self.sample_path,
-			    dst = self.copied_file_path)
+			    dst = self.copied_file_path
+			)
 			shutil.unpack_archive(
 				filename = self.copied_file_path, 
 				extract_dir = self.unzipped_folder_path)
-
-	def _copy_folder(self, src: str, dst: str) -> None:
-		shutil.copytree(
-			src = src,
-			dst = dst)		
-				
+		
+	"""
+	Copy file from src to dst
+	"""
+	def _copy_file(self, src: str, dst: str) -> None:
+		shutil.copy(src = src, dst = dst)
+		
+	"""
+	Copy file from src to dst
+	"""
+	def _copy_folder(self, src: str, dst:str) -> None:
+		shutil.copytree(src = src, dst = dst)				
 	
 	"""
 	Finds all places where payloads will be embedded.
@@ -244,13 +245,7 @@ class Sample:
 			format='zip'
 		)
 
-	"""
-	Copy file or folder 
-	from src to dst
-	"""
-	def _copy_folder(self, src: str, dst:str) -> None:
-		# shutil.copy(src = src, dst = dst)
-		shutil.copytree(src = src, dst = dst)
+
 		
 	def _rename_object(self, src: str, dst: str) -> None:
 		os.rename(src=src, dst=dst)
@@ -305,32 +300,6 @@ class Sample:
 		self._delete_folder(self.final_file_folder)
 
 		print(f'File with payload created: {self.final_file_packed_ext.replace(self.tmp_folder_path,"tmp/")}')
-
-	"""
-	Copy 
-	"""
-	def pack_file(self, pmode: str, ptype: str):
-
-		final_file_name_core = f'{self.sample_file_name}-{pmode}_{ptype}_{uuid.uuid4().hex[:5]}'
-		final_file_folder = f'{self.tmp_folder_path}{final_file_name_core}/'
-		final_file_packed_zip = f'{self.tmp_folder_path}{final_file_name_core}.zip'
-		final_file_packed_ext = f'{self.tmp_folder_path}{final_file_name_core}.{self.sample_file_ext}'
-
-
-		self._copy_folder(
-			src = self.unzipped_folder_path, 
-			dst = final_file_folder)
-		self._archive_folder(
-			src_folder_path = final_file_folder,
-			dst_archive_path = final_file_packed_zip
-		)
-		self._rename_object(
-			src = final_file_packed_zip,
-			dst = final_file_packed_ext
-		)
-
-		self._delete_folder(final_file_folder)
-
 
 
 	"""
@@ -447,10 +416,10 @@ _|_|_|      _|_|      _|_|_|    _|_|_|  _|    _|    _|
 
 	def print_examples(self):
 		examples = 	[
-			'./docem.py -s samples/xxe/docx_sample_oxml_xxe_mod0/ -pt xxe -pf payloads/xxe_special_6.txt -pm per_document -kt -sx docx',
-			'./docem.py -s samples/xxe/docx_sample_oxml_xxe_mod1/ -pt xxe -pf payloads/xxe_special_1.txt -pm per_file -kt -sx docx',
-			'./docem.py -s samples/xxe/sample_oxml_xxe_mod1.docx -pt xxe -pf payloads/xxe_special_2.txt -kt -pm per_place',
-			'./docem.py -s samples/xss_sample_0.odt -pt xss -pf payloads/xss_tiny.txt -pm per_place'
+			'./docem.py -s samples/marked/docx_sample_oxml_xxe_mod0/ -pt xxe -pf payloads/xxe_special_6.txt -pm per_document -sx docx',
+			'./docem.py -s samples/marked/docx_sample_oxml_xxe_mod1/ -pt xxe -pf payloads/xxe_special_1.txt -pm per_file -sx docx',
+			'./docem.py -s samples/marked/sample_oxml_xxe_mod1.docx -pt xxe -pf payloads/xxe_special_2.txt -pm per_place',
+			'./docem.py -s samples/marked/docx_sample_oxml_xxe_mod0/ -pt xss -pf payloads/xss_tiny.txt -pm per_place -sx docx'
 		]
 		
 		print('Examples:\n%s\n' % '\n'.join(e for e in examples))
@@ -475,10 +444,6 @@ if __name__ == '__main__':
 							dest='payload_type',
 							type=str,choices=['xss','xxe'],
 							help='payload type: embedding XXE or XSS in a file')
-	optional.add_argument('-kt',
-							dest='keep_tmp',
-							action='store_true',
-							help='do not delete unpacked and modified folders')
 	optional.add_argument('-pm',
 							dest='payload_mode',
 							type=str,
@@ -501,7 +466,11 @@ if __name__ == '__main__':
 	magic_file_extensions = ('.xml','.txt','.rels','.vml')
 	
 	if args.sample:
-		if os.path.exists(args.sample) and os.path.exists(args.payload_file):
+		if not os.path.exists(args.sample):		
+			print(f'Error: Sample file does not exist: {args.sample}')
+		elif not os.path.exists(args.payload_file):
+			print(f'Error: Payload file does not exist: {args.payload_file}')
+		else:
 			print(f'Document Embed XSS & XXE tool')
 			print(f'Current magic_symbol: {magic_symbol}')
 
@@ -511,16 +480,15 @@ if __name__ == '__main__':
 			s = Sample(args.sample)
 
 			# only for debug
-			# s._delete_folder(s.tmp_folder_path)
+			# s._delete_folder(s.tmp_folder_path, keep_folder=True)
 
 			print('\n=========== Current setup ===========')
-			print('sample file path:\t\t', s.sample_path)
+			print('sample file path:\t', s.sample_path)
 			print('sample is a directory:\t', s.is_sample_folder)
 			print('payload mode:\t\t', args.payload_mode)
 			print('payload file:\t\t', args.payload_file)
 			print('payload type:\t\t', args.payload_type)
 			print('number of payloads:\t', len(p.list))
-			print('keep unpacked files:\t', args.keep_tmp)
 			print()
 
 			s.unpack()
@@ -534,8 +502,9 @@ if __name__ == '__main__':
 				)
 
 			s._delete_folder(s.unzipped_folder_path)
+			if not s.is_sample_folder:
+				os.remove(s.copied_file_path)
+				
 					
-		else:
-			print("Error: One of specified files: '%s' or '%s' - does not exist"% (args.sample, args.payload_file))
 	else:
 		parser.print_help()
