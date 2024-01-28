@@ -12,9 +12,9 @@
             "console": "integratedTerminal",
             "args": [
                 "-s","samples/xxe/docx_sample_oxml_xxe_mod1/",
-                "-pt","xxe",
-                "-pf","payloads/xxe_special_1.txt",
-                "-pm","per_file",
+                "-pt","xss",
+                "-pf","payloads/xss_tiny.txt",
+                "-pm","per_place",
                 "-sx","docx"
             ],
             
